@@ -12,7 +12,7 @@ class PantallaAnalisisVentas extends StatelessWidget {
   static String _cap(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-  // Nombre del día de la semana (1=Lun..7=Dom) localizado.
+  // Localised weekday name (1=Mon..7=Sun).
   static String _diaNombre(int weekday, String locale) =>
       _cap(DateFormat.EEEE(locale).format(DateTime(2024, 1, weekday)));
 
@@ -22,7 +22,7 @@ class PantallaAnalisisVentas extends StatelessWidget {
     final m = AppColores.of(context);
     final t = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-    // Etiquetas de mes localizadas (ej. "jul. 2026") para "Demanda por mes".
+    // Localised month labels (e.g. "jul. 2026") for "Demand by month".
     final a = datos.analisisVentas(
       etiquetaMes: (y, mo) =>
           _cap(DateFormat.yMMM(locale).format(DateTime(y, mo))),

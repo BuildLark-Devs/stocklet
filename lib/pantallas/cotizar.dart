@@ -25,7 +25,7 @@ class PantallaCotizar extends StatelessWidget {
     final m = AppColores.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(t.cotizarTitulo)),
-      // Cotizar es parte del trabajo del día: cualquier miembro puede hacerlo.
+      // Quoting is part of the daily work: any member can do it.
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _nueva(context),
         icon: const Icon(Icons.add),
@@ -99,8 +99,8 @@ class PantallaCotizar extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Solo para las aceptadas que aún no generaron pedido: el resto no
-            // tiene nada que convertir, o ya lo hizo.
+            // Only for accepted quotes with no order yet: the rest have
+            // nothing to convert, or already did.
             if (c.estado == 'aceptada' && !c.convertida)
               IconButton(
                 icon: Icon(Icons.assignment_turned_in_outlined, color: m.verdeOscuro),
@@ -118,8 +118,8 @@ class PantallaCotizar extends StatelessWidget {
     );
   }
 
-  /// Convertir desde la lista, para las cotizaciones que se aceptaron hace
-  /// días y aún no tienen pedido.
+  /// Converting from the list, for quotes accepted days ago that still have
+  /// no order.
   Future<void> _convertir(BuildContext context, DatosApp datos,
       AppLocalizations t, Cotizacion c) async {
     final messenger = ScaffoldMessenger.of(context);

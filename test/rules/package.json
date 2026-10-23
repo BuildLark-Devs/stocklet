@@ -2,7 +2,7 @@
   "name": "stocklet-rules-tests",
   "version": "1.0.0",
   "private": true,
-  "description": "Pruebas de las reglas de seguridad de Firestore y Storage de Stocklet.",
+  "description": "Tests for the Stocklet Firestore and Storage security rules.",
   "type": "module",
   "scripts": {
     "test": "firebase emulators:exec --only firestore --project demo-stocklet \"node runner.cjs\""

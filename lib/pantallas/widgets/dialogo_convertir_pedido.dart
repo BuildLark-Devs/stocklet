@@ -7,17 +7,17 @@ import '../../models/cotizacion.dart';
 import '../../models/pedido.dart';
 import '../../tema.dart';
 
-/// Lo que devuelve el diálogo cuando la persona confirma.
+/// What the dialog returns when the person confirms.
 class DatosConversion {
   final String telefono;
   final DateTime fechaEntrega;
   const DatosConversion(this.telefono, this.fechaEntrega);
 }
 
-/// Pide lo único que la cotización no tiene —teléfono y fecha de entrega— y
-/// muestra qué va a pasar antes de crear el pedido.
+/// Asks for the only things the quote lacks — phone and delivery date — and
+/// shows what is about to happen before creating the order.
 ///
-/// Devuelve `null` si se cancela: cancelar no escribe nada.
+/// Returns `null` on cancel: cancelling writes nothing.
 Future<DatosConversion?> mostrarDialogoConvertirPedido(
   BuildContext context,
   Cotizacion cotizacion,
@@ -42,9 +42,9 @@ class _DialogoConvertirPedidoState extends State<_DialogoConvertirPedido> {
   DateTime? fechaEntrega;
   bool faltaFecha = false;
 
-  // Vista previa del pedido, para poder informar antes de crear nada. Se
-  // calcula una vez: ni el catálogo ni el inventario cambian mientras el
-  // diálogo está abierto.
+  // A preview of the order, so we can inform before creating anything.
+  // Computed once: neither the catalogue nor the stock change while the
+  // dialog is open.
   late final Pedido _previo;
   late final List<String> _sinReceta;
   late final List<String> _faltantes;
@@ -169,17 +169,18 @@ class _DialogoConvertirPedidoState extends State<_DialogoConvertirPedido> {
               ),
             ),
 
-            // Qué líneas NO van a descontar inventario.
+            // Which lines will NOT deduct stock.
             if (_sinReceta.isNotEmpty)
               _aviso(m, m.textoSuave, Icons.info_outline,
                   t.convertirSinInventario(_sinReceta.join(', '))),
 
-            // Inventario que no alcanzaría. Informa, no bloquea.
+            // Stock that would fall short. It informs, it does not block.
             if (_faltantes.isNotEmpty)
               _aviso(m, m.rojo, Icons.warning_amber_outlined,
                   t.convertirFaltantes(_faltantes.join(', '))),
 
-            // El ajuste solo se muestra si resta, que es lo que sorprende.
+            // The adjustment only shows when it subtracts, which is the
+            // surprising case.
             if (_previo.otroValor < 0)
               _aviso(m, m.textoSuave, Icons.remove_circle_outline,
                   t.convertirAjuste(pesos(_previo.otroValor))),

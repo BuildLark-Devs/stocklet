@@ -24,7 +24,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'servicios/push_service.dart';
 import 'servicios/suscripcion_service.dart';
 
-// Centinela para distinguir "no tocar" de "poner en null" en parámetros.
+// Sentinel that distinguishes "leave alone" from "set to null" in parameters.
 class _Sentinel {
   const _Sentinel();
 }
@@ -76,7 +76,7 @@ class AnalisisVentas {
   });
 }
 
-// Invitación por código para unirse a un negocio.
+// A code invitation for joining a business.
 class Invitacion {
   final String codigo;
   final String rol; // 'socio' | 'empleado'
@@ -90,7 +90,7 @@ class Invitacion {
   });
 }
 
-// Miembro del negocio (para el panel del dueño).
+// A business member (for the owner panel).
 class MiembroNegocio {
   final String uid;
   final String nombre;
@@ -111,10 +111,10 @@ class DatosApp extends ChangeNotifier {
   bool notifInsumos = true;
   String acentoId = 'verde';
   String modoTemaId = 'claro'; // 'claro' | 'oscuro' | 'auto'
-  // Idioma elegido por el usuario. null = seguir el idioma del dispositivo.
+  // Language chosen by the user. null = follow the device language.
   String? idiomaId;
-  // Rol del usuario actual en el negocio: 'dueno' | 'socio' | 'empleado'.
-  // Por defecto 'empleado' (menos privilegios) hasta cargar el real.
+  // Current user's role in the business: 'dueno' | 'socio' | 'empleado'.
+  // Defaults to 'empleado' (fewest privileges) until the real one loads.
   String rolUsuario = 'empleado';
 
   List<Insumo> insumos = [];
@@ -132,14 +132,14 @@ class DatosApp extends ChangeNotifier {
 
   DatosApp() {
     _cargarPrefsNotif();
-    // Cuando cambia el estado Pro (RevenueCat), refresca la UI.
+    // When the Pro state changes (RevenueCat), refresh the UI.
     SuscripcionService.instance.esPro.addListener(notifyListeners);
     FirebaseAuth.instance.authStateChanges().listen((usuario) async {
       if (usuario != null) {
         estado = EstadoApp.cargando;
         notifyListeners();
         await _cargarNegocioId(usuario.uid);
-        // La suscripción va atada al uid, no a la instalación.
+        // The subscription is tied to the uid, not to the installation.
         await SuscripcionService.instance.identificar(usuario.uid);
         if (_negocioId != null) {
           _escucharTodo();
@@ -155,20 +155,20 @@ class DatosApp extends ChangeNotifier {
         _negocioId = null;
         negocio = null;        // limpia el negocio anterior
         reiniciarMoneda();     // vuelve la moneda a la de por defecto
-        // Desvincula la suscripción: el siguiente usuario de este dispositivo
-        // no debe heredar el Pro del anterior.
+        // Unlink the subscription: the next user on this device must not
+        // inherit the previous one's Pro.
         await SuscripcionService.instance.cerrarSesion();
         _detenerYLimpiar();
       }
     });
   }
 
-  /// `true` si el usuario tiene Pro (o si la monetización está inactiva).
-  /// Refleja el estado de RevenueCat vía [SuscripcionService].
+  /// `true` if the user has Pro (or if monetisation is inactive).
+  /// Mirrors the RevenueCat state via [SuscripcionService].
   bool get esPro => SuscripcionService.instance.esPro.value;
 
 Future<void> _cargarNegocioId(String uid) async {
-    // 1) ¿A qué negocio pertenezco? Esto define si entras o no.
+    // 1) Which business do I belong to? This decides whether you get in.
     try {
       final doc = await _db.collection('usuarios').doc(uid).get();
       _negocioId = doc.exists ? (doc.data()?['negocioId'] as String?) : null;
@@ -181,8 +181,8 @@ Future<void> _cargarNegocioId(String uid) async {
       return;
     }
 
-    // 2) Traer los datos del negocio (moneda, nombre). Si falla,
-    //    NO perdemos el negocioId: entras igual, con la moneda por defecto.
+    // 2) Fetch the business data (currency, name). On failure we do NOT
+    //    lose the negocioId: you still get in, with the default currency.
     if (_negocioId != null) {
       try {
         final negDoc = await _db.collection('negocios').doc(_negocioId).get();
@@ -195,12 +195,12 @@ Future<void> _cargarNegocioId(String uid) async {
           );
         }
       } catch (e) {
-        // Moneda por defecto; lo importante es que entres a tu negocio.
+        // Default currency; what matters is that you reach your business.
       }
     }
   }
 
-  // Crea un negocio nuevo y enlaza al usuario actual
+  // Creates a new business and links the current user to it
   Future<void> crearNegocio({
     required String nombre,
     required String pais,
@@ -238,28 +238,28 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // --- Roles y permisos (capa de UX; la seguridad real va en las reglas) ---
+  // --- Roles and permissions (UX layer; real security lives in the rules) ---
   String get _uidActual => FirebaseAuth.instance.currentUser?.uid ?? '';
-  // Es dueño si su rol es 'dueno' o si es el creador del negocio (duenoUid).
+  // Owner if their role is 'dueno' or they created the business (duenoUid).
   bool get esDueno =>
       rolUsuario == 'dueno' ||
       (negocio != null && negocio!.duenoUid == _uidActual);
   bool get _duenoOSocio => esDueno || rolUsuario == 'socio';
-  // Puede eliminar cualquier registro (dueño o socio).
+  // May delete any record (owner or partner).
   bool get puedeEliminar => _duenoOSocio;
-  // Puede crear/editar el catálogo: productos, insumos y recetas.
+  // May create/edit the catalogue: products, supplies and recipes.
   bool get puedeGestionarCatalogo => _duenoOSocio;
-  // Puede editar el historial de ventas y gastos.
+  // May edit the sales and expenses history.
   bool get puedeEditarFinanzas => _duenoOSocio;
 
-  // --- Invitaciones y miembros (centro de invitaciones por código) ---
+  // --- Invitations and members (the invite-code centre) ---
   static String _generarCodigo() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin ambiguos (0/O, 1/I)
     final r = Random.secure();
     return List.generate(6, (_) => chars[r.nextInt(chars.length)]).join();
   }
 
-  // El dueño genera una invitación con un rol ('socio' | 'empleado').
+  // The owner generates an invitation with a role ('socio' | 'empleado').
   Future<String> crearInvitacion(String rol) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final codigo = _generarCodigo();
@@ -323,8 +323,8 @@ Future<void> _cargarNegocioId(String uid) async {
     await _db.collection('usuarios').doc(uid).delete();
   }
 
-  // El invitado se une con un código. Devuelve null si todo bien, o una clave
-  // de error: 'sesion' | 'noExiste' | 'usada' | 'invalida' | 'error'.
+  // The guest joins with a code. Returns null on success, or an error key:
+  // 'sesion' | 'noExiste' | 'usada' | 'invalida' | 'error'.
   Future<String?> unirsePorCodigo(String codigo) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return 'sesion';
@@ -338,16 +338,16 @@ Future<void> _cargarNegocioId(String uid) async {
       final rol = data['rol'] as String?;
       if (negId == null || rol == null || rol == 'dueno') return 'invalida';
 
-      // 1) Reclamar el código.
+      // 1) Claim the code.
       await ref.update({'estado': 'usada', 'usadaPor': uid});
-      // 2) Crear el enlace usuario -> negocio.
+      // 2) Create the user -> business link.
       await _db.collection('usuarios').doc(uid).set({
         'negocioId': negId,
         'rol': rol,
         'invitacionCodigo': ref.id,
       }, SetOptions(merge: true));
 
-      // 3) Entrar al negocio.
+      // 3) Enter the business.
       _negocioId = negId;
       rolUsuario = rol;
       final negDoc = await _db.collection('negocios').doc(negId).get();
@@ -370,7 +370,7 @@ Future<void> _cargarNegocioId(String uid) async {
     }
   }
 
-  // Guarda los datos personales del usuario (en usuarios/{uid})
+  // Saves the user personal data (in usuarios/{uid})
   Future<void> guardarPerfil(
       {required String nombre, required String celular}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -421,8 +421,8 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Cambia el idioma de la app. Pasa null para volver al idioma del
-  // dispositivo. Se guarda como preferencia GLOBAL (no depende del negocio).
+  // Changes the app language. Pass null to go back to the device language.
+  // Stored as a GLOBAL preference (it does not depend on the business).
   Future<void> setIdioma(String? id) async {
     idiomaId = id;
     final prefs = await SharedPreferences.getInstance();
@@ -435,15 +435,15 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Idioma efectivo (el elegido, o el del dispositivo), acotado a los soportados.
+  // Effective language (the chosen one, or the device one), clamped to supported.
   String get _idiomaEfectivo {
     final code = idiomaId ?? PlatformDispatcher.instance.locale.languageCode;
     const soportados = {'es', 'en', 'pt', 'fr'};
     return soportados.contains(code) ? code : 'en';
   }
 
-  // Guarda el idioma del usuario en Firestore para localizar las notificaciones
-  // push (el servidor no conoce la preferencia guardada en el dispositivo).
+  // Saves the user language in Firestore so push notifications can be
+  // localised (the server cannot see the preference stored on the device).
   Future<void> guardarIdiomaUsuario() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -453,13 +453,13 @@ Future<void> _cargarNegocioId(String uid) async {
           .doc(uid)
           .update({'idioma': _idiomaEfectivo});
     } catch (_) {
-      // El doc puede no existir todavía; se guarda al entrar a un negocio.
+      // The doc may not exist yet; it is written on joining a business.
     }
   }
 
-  // Reautentica con la contraseña y elimina la cuenta y sus datos (mediante la
-  // Cloud Function eliminarCuenta). Si es dueño, borra Todo el negocio.
-  // Devuelve null si todo bien, o 'password' | 'error'.
+  // Reauthenticates with the password and deletes the account and its data
+  // (through the eliminarCuenta Cloud Function). If they are the owner, the
+  // whole business goes. Returns null on success, or 'password' | 'error'.
   Future<String?> eliminarCuenta(String password) async {
     final user = FirebaseAuth.instance.currentUser;
     final email = user?.email;
@@ -507,11 +507,11 @@ Future<void> _cargarNegocioId(String uid) async {
 
   int get totalAvisos => avisosPedidos.length + avisosInsumos.length;
 
-  // Atajo: la colección X DENTRO de mi negocio
+  // Shortcut: collection X INSIDE my business
   CollectionReference<Map<String, dynamic>> _col(String nombre) =>
       _db.collection('negocios').doc(_negocioId).collection(nombre);
 
-  // --- Agregar al catálogo ---
+  // --- Adding to the catalogue ---
   void agregarInsumo(Insumo insumo) {
     insumos.add(insumo);
     _col('insumos').doc(insumo.id).set(insumo.toMap());
@@ -574,7 +574,7 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Compra de insumos: repone el stock (promedio ponderado) y registra el gasto.
+  // Buying supplies: restocks (weighted average) and records the expense.
   void comprarInsumos({
     required List<LineaCompraInsumo> lineas,
     required String descripcion,
@@ -585,7 +585,7 @@ Future<void> _cargarNegocioId(String uid) async {
       final insumo = l.insumo;
       final costoCompraUnit =
           l.cantidad > 0 ? l.total / l.cantidad : insumo.costoPorUnidad;
-      // Promedio ponderado; el stock viejo negativo no pondera el costo.
+      // Weighted average; negative old stock does not weigh on the cost.
       final viejoPositivo = insumo.stockActual > 0 ? insumo.stockActual : 0.0;
       final denom = viejoPositivo + l.cantidad;
       final nuevoCosto = denom > 0
@@ -617,15 +617,15 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Entrega el pedido: descuenta insumos (según la copia de receta de cada
-  // ítem del catálogo) y registra el ingreso. Devuelve los insumos que
-  // quedaron en negativo (para avisar).
+  // Delivers the order: deducts supplies (per the recipe snapshot each
+  // catalogue item kept) and records the income. Returns the supplies left
+  // negative, so they can be flagged.
   List<String> marcarPedidoEntregado(Pedido pedido) {
     pedido.entregado = true;
     _col('pedidos').doc(pedido.id).set(pedido.toMap());
 
-    // Mismo cálculo que usa el aviso de inventario insuficiente al convertir
-    // una cotización: una sola fuente, para que aviso y descuento no discrepen.
+    // The same calculation the insufficient-stock warning uses when converting
+    // a quote: one single source, so warning and deduction cannot disagree.
     final descuento = consumoDeInsumos(pedido);
 
     final negativos = <String>[];
@@ -638,8 +638,8 @@ Future<void> _cargarNegocioId(String uid) async {
       if (insumo.stockActual < 0) negativos.add(insumo.nombre);
     });
 
-    // El ingreso del pedido se registra como una venta propia: así aparece
-    // en el historial y queda independiente del pedido.
+    // The order income is recorded as a sale of its own, so it shows up in
+    // the history and stays independent of the order.
     final venta = Venta(
       fecha: DateTime.now(),
       descripcion: 'Pedido: ${pedido.cliente.nombre} — ${pedido.descripcion}',
@@ -666,7 +666,7 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Agrega varios insumos de una vez (traídos del catálogo de referencia).
+  // Adds several supplies at once (taken from the reference catalogue).
   void agregarInsumosDesdeCatalogo(List<Insumo> nuevos) {
     for (final ins in nuevos) {
       insumos.add(ins);
@@ -848,12 +848,11 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  /// Crea el pedido que corresponde a una cotización aceptada y las deja
-  /// enlazadas. Devuelve el pedido creado, o `null` si la cotización ya había
-  /// generado uno.
+  /// Creates the order matching an accepted quote and links the two. Returns
+  /// the created order, or `null` if the quote had already generated one.
   ///
-  /// **No toca el inventario**: el descuento ocurre al marcar el pedido como
-  /// entregado, igual que con cualquier pedido creado a mano.
+  /// **It does not touch inventory**: the deduction happens when the order is
+  /// marked delivered, exactly as with any hand-made order.
   Pedido? convertirCotizacionEnPedido(
     Cotizacion cotizacion, {
     required String telefono,
@@ -924,7 +923,7 @@ Future<void> _cargarNegocioId(String uid) async {
     try {
       await _storage.ref(c.path).delete();
     } catch (_) {
-      // Si el archivo ya no existe, igual borramos el registro.
+      // If the file is already gone, delete the record anyway.
     }
     await _col('catalogos').doc(c.id).delete();
     catalogos.removeWhere((x) => x.id == c.id);
@@ -950,7 +949,7 @@ Future<void> _cargarNegocioId(String uid) async {
 
   double get ganancia => ingresosTotales - gastosTotales;
 
-  // --- Totales dentro de un rango (para el panel del inicio) ---
+  // --- Totals within a range (for the home panel) ---
   (DateTime, DateTime) _limitesRango(RangoTendencia rango) {
     final ahora = DateTime.now();
     final fin = DateTime(ahora.year, ahora.month + 1, 1);
@@ -984,7 +983,7 @@ Future<void> _cargarNegocioId(String uid) async {
   double gananciaEnRango(RangoTendencia rango) =>
       ingresosEnRango(rango) - gastosEnRango(rango);
   
-  // --- Top de productos (solo nombres que existen en el catálogo) ---
+  // --- Top products (only names that exist in the catalogue) ---
   List<ProductoVendido> topProductos(int anio, int mes) {
     final nombres = productos.map((p) => p.nombre).toSet();
     final cant = <String, double>{};
@@ -1002,7 +1001,7 @@ Future<void> _cargarNegocioId(String uid) async {
     return lista;
   }
 
-  // Meses (día 1) que tienen al menos una venta de un producto del catálogo.
+  // Months (day 1) with at least one sale of a catalogue product.
   List<DateTime> mesesConVentasDeProductos() {
     final nombres = productos.map((p) => p.nombre).toSet();
     final vistos = <String>{};
@@ -1016,9 +1015,9 @@ Future<void> _cargarNegocioId(String uid) async {
     return lista;
   }
 
-  // --- Análisis de todas las ventas (productos, manuales y pedidos) ---
-  // [etiquetaMes] permite a la UI inyectar el nombre del mes localizado
-  // (ej. con intl). Si no se pasa, usa las abreviaturas en español por defecto.
+  // --- Analysis of every sale (products, manual ones and orders) ---
+  // [etiquetaMes] lets the UI inject the localised month name (with intl,
+  // for instance). Without it, the default Spanish abbreviations are used.
   AnalisisVentas analisisVentas({
     String Function(int year, int month)? etiquetaMes,
   }) {
@@ -1054,16 +1053,16 @@ Future<void> _cargarNegocioId(String uid) async {
       porFecha[dia] = (porFecha[dia] ?? 0) + v.total;
     }
 
-    // Meses ordenados cronológicamente
+    // Months in chronological order
     final porMes = porMesMapa.entries.toList()
       ..sort((a, b) => ordenMes[a.key]!.compareTo(ordenMes[b.key]!));
 
-    // Día de la semana ordenado Lun..Dom
+    // Weekday ordered Mon..Sun
     final porDiaSemana = [
       for (int d = 1; d <= 7; d++) MapEntry(d, porDia[d] ?? 0.0)
     ];
 
-    // Fechas pico: top 5 días por total
+    // Peak dates: top 5 days by total
     final fechasPico = porFecha.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -1096,14 +1095,14 @@ Future<void> _cargarNegocioId(String uid) async {
     return lista;
   }
 
-  // [etiquetaMesCorto] permite inyectar la abreviatura de mes localizada.
+  // [etiquetaMesCorto] lets the localised month abbreviation be injected.
   List<PuntoTendencia> tendenciaGanancia(
     RangoTendencia rango, {
     String Function(int year, int month)? etiquetaMesCorto,
   }) {
     final ahora = DateTime.now();
 
-    // Ganancia en el intervalo [ini, fin)  (fin es exclusivo)
+    // Profit over the interval [ini, fin)  (fin is exclusive)
     double gananciaEntre(DateTime ini, DateTime fin) {
       double ing = 0, gas = 0;
       for (final v in ventas) {
@@ -1118,7 +1117,7 @@ Future<void> _cargarNegocioId(String uid) async {
     final puntos = <PuntoTendencia>[];
 
     if (rango == RangoTendencia.mes) {
-      // Día por día, del 1 hasta hoy
+      // Day by day, from the 1st until today
       for (int d = 1; d <= ahora.day; d++) {
         final ini = DateTime(ahora.year, ahora.month, d);
         final fin = DateTime(ahora.year, ahora.month, d + 1);
@@ -1140,13 +1139,13 @@ Future<void> _cargarNegocioId(String uid) async {
     return puntos;
   }
 
-  // --- Escuchar la nube en vivo, dentro del negocio ---
+  // --- Listening to the cloud live, inside the business ---
   void _escucharTodo() {
     if (_negocioId == null) return;       // sin negocio, no hay qué escuchar
     if (_suscripciones.isNotEmpty) return;
 
-    // Rendimiento a escala: ventas y gastos se escuchan solo de los últimos
-    // ~12 meses (ventana móvil). Los datos más viejos no se cargan en vivo.
+    // Performance at scale: sales and expenses are only listened to for the
+    // last ~12 months (a rolling window). Older data is not loaded live.
     final ahora = DateTime.now();
     final corteHistorial =
         Timestamp.fromDate(DateTime(ahora.year - 1, ahora.month, 1));
@@ -1234,7 +1233,7 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Sube/reemplaza el logo del negocio (solo el dueño, según las reglas)
+  // Uploads/replaces the business logo (owner only, per the rules)
   Future<void> guardarLogo(Uint8List bytes, String contentType) async {
     if (_negocioId == null || negocio == null) return;
     final ref = _storage.ref('negocios/$_negocioId/logo/imagen');
@@ -1248,14 +1247,14 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Quitar la foto de perfil (borra el archivo y limpia la URL)
+  // Remove the profile photo (deletes the file and clears the URL)
   Future<void> eliminarFotoPerfil() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
       await _storage.ref('usuarios/$uid/foto_perfil').delete();
     } catch (_) {
-      // Si el archivo ya no existe, igual limpiamos la URL.
+      // If the file is already gone, clear the URL anyway.
     }
     await _db.collection('usuarios').doc(uid).set(
       {'fotoUrl': ''},
@@ -1265,13 +1264,13 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Quitar el logo de la empresa (solo el dueño, según las reglas)
+  // Remove the company logo (owner only, per the rules)
   Future<void> eliminarLogo() async {
     if (_negocioId == null || negocio == null) return;
     try {
       await _storage.ref('negocios/$_negocioId/logo/imagen').delete();
     } catch (_) {
-      // Si el archivo ya no existe, igual limpiamos la URL.
+      // If the file is already gone, clear the URL anyway.
     }
     await _db.collection('negocios').doc(_negocioId).set(
       {'logoUrl': ''},
@@ -1281,7 +1280,7 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Actualiza los datos de la empresa (solo el dueño, según las reglas)
+  // Updates the company data (owner only, per the rules)
   Future<void> editarNegocioDatos({
     required String nombre,
     required String nit,
@@ -1308,10 +1307,10 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Configuración de costeo derivada del negocio.
+  // Costing configuration derived from the business.
   ConfigCosteo get configCosteo => ConfigCosteo.deNegocio(negocio);
 
-  // Guarda los ajustes de costeo (tarifa, energía, gastos fijos, márgenes, IVA).
+  // Saves the costing settings (rate, energy, fixed costs, margins, VAT).
   Future<void> guardarAjustesCosteo({
     required double tarifaHora,
     required double costoEnergiaHora,
@@ -1350,7 +1349,7 @@ Future<void> _cargarNegocioId(String uid) async {
     notifyListeners();
   }
 
-  // Sube/reemplaza la foto de perfil (privada) y guarda su URL
+  // Uploads/replaces the (private) profile photo and stores its URL
   Future<void> guardarFotoPerfil(Uint8List bytes, String contentType) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;

@@ -1,14 +1,14 @@
-// Formato de cantidades, búsqueda sin tildes y formateadores de entrada.
+// Quantity formatting, accent-insensitive search and input formatters.
 //
-// Estos helpers deciden cómo se ve cada número de la app. Un cambio aquí se
-// nota en todas las pantallas a la vez.
+// These helpers decide how every number in the app looks. A change here
+// shows up on every screen at once.
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reposteria_app/formato.dart';
 
-// Simula escribir `nuevo` en un campo que tenía `viejo`, y devuelve lo que el
-// formateador deja pasar.
+// Simulates typing `nuevo` into a field that held `viejo`, and returns what
+// the formatter lets through.
 String escribir(TextInputFormatter f, String viejo, String nuevo) {
   return f
       .formatEditUpdate(
@@ -20,13 +20,13 @@ String escribir(TextInputFormatter f, String viejo, String nuevo) {
 
 void main() {
   group('sinTildes', () {
-    test('quita acentos y pasa a minúsculas', () {
+    test('it strips accents and lowercases', () {
       expect(sinTildes('Azúcar'), 'azucar');
       expect(sinTildes('AZÚCAR'), 'azucar');
       expect(sinTildes('azucar'), 'azucar');
     });
 
-    test('cubre las vocales acentuadas, la eñe y la cedilla', () {
+    test('it covers accented vowels, n-tilde and c-cedilla', () {
       expect(sinTildes('áàäâã'), 'aaaaa');
       expect(sinTildes('éèëê'), 'eeee');
       expect(sinTildes('íìïî'), 'iiii');
@@ -36,69 +36,69 @@ void main() {
       expect(sinTildes('ç'), 'c');
     });
 
-    test('permite buscar sin importar cómo se escriba', () {
-      // El caso que motivó el helper: buscar "limon" encuentra "Limón".
+    test('it allows searching however the word is spelled', () {
+      // The case that prompted the helper: searching "limon" finds "Limón".
       expect(sinTildes('Limón').contains(sinTildes('limon')), isTrue);
       expect(sinTildes('Piña').contains(sinTildes('pina')), isTrue);
     });
 
-    test('no toca lo que no lleva acento', () {
+    test('it leaves unaccented text alone', () {
       expect(sinTildes('Harina 000'), 'harina 000');
       expect(sinTildes(''), '');
     });
   });
 
   group('cantidadStr', () {
-    test('un entero se muestra sin decimales', () {
+    test('an integer shows with no decimals', () {
       expect(cantidadStr(2), '2');
       expect(cantidadStr(2.0), '2');
       expect(cantidadStr(1000), '1000');
       expect(cantidadStr(0), '0');
     });
 
-    test('los decimales se muestran sin ceros sobrantes', () {
+    test('decimals show without trailing zeros', () {
       expect(cantidadStr(2.5), '2.5');
       expect(cantidadStr(2.25), '2.25');
       expect(cantidadStr(2.50), '2.5');
       expect(cantidadStr(0.1), '0.1');
     });
 
-    test('se redondea a dos decimales', () {
+    test('it rounds to two decimals', () {
       expect(cantidadStr(2.256), '2.26');
       expect(cantidadStr(2.254), '2.25');
     });
 
-    test('los negativos conservan el signo', () {
-      // El stock puede quedar negativo y hay que poder verlo.
+    test('negatives keep their sign', () {
+      // Stock can go negative and has to be visible.
       expect(cantidadStr(-3), '-3');
       expect(cantidadStr(-2.5), '-2.5');
     });
   });
 
   group('parseCantidad', () {
-    test('acepta coma y punto como separador decimal', () {
+    test('it accepts comma and dot as the decimal separator', () {
       expect(parseCantidad('2.5'), 2.5);
       expect(parseCantidad('2,5'), 2.5);
     });
 
-    test('ignora espacios alrededor', () {
+    test('it ignores surrounding whitespace', () {
       expect(parseCantidad('  7  '), 7);
     });
 
-    test('acepta negativos', () {
+    test('it accepts negatives', () {
       expect(parseCantidad('-4.5'), -4.5);
     });
 
-    test('lo vacío o ilegible es cero', () {
+    test('empty or unreadable is zero', () {
       expect(parseCantidad(''), 0);
       expect(parseCantidad('   '), 0);
       expect(parseCantidad('abc'), 0);
     });
 
-    test('un separador de miles NO se entiende: devuelve cero', () {
-      // Documenta el límite real: "1.234,56" no se interpreta como 1234.56.
-      // Los formateadores de entrada impiden teclearlo, pero si alguna vez se
-      // parsea texto de otra fuente, hay que normalizarlo antes.
+    test('a thousands separator is NOT understood: it returns zero', () {
+      // Documents the real limit: "1.234,56" is not read as 1234.56. The
+      // input formatters stop it being typed, but if text from another
+      // source is ever parsed, it has to be normalised first.
       expect(parseCantidad('1.234,56'), 0);
     });
   });
@@ -106,7 +106,7 @@ void main() {
   group('Decimal2Formatter', () {
     final f = Decimal2Formatter();
 
-    test('deja escribir enteros y hasta dos decimales', () {
+    test('it allows integers and up to two decimals', () {
       expect(escribir(f, '', '5'), '5');
       expect(escribir(f, '5', '5.2'), '5.2');
       expect(escribir(f, '5.2', '5.25'), '5.25');
@@ -117,17 +117,17 @@ void main() {
       expect(escribir(f, '5', ''), '');
     });
 
-    test('bloquea el tercer decimal', () {
+    test('it blocks the third decimal', () {
       expect(escribir(f, '5.25', '5.256'), '5.25');
     });
 
-    test('bloquea letras y signos', () {
+    test('it blocks letters and symbols', () {
       expect(escribir(f, '5', '5a'), '5');
       expect(escribir(f, '5', '5+'), '5');
     });
 
-    test('bloquea el signo negativo', () {
-      // Es la diferencia con DecimalSignedFormatter.
+    test('it blocks the minus sign', () {
+      // This is the difference from DecimalSignedFormatter.
       expect(escribir(f, '', '-'), '');
       expect(escribir(f, '', '-5'), '');
     });
@@ -136,13 +136,13 @@ void main() {
   group('DecimalSignedFormatter', () {
     final f = DecimalSignedFormatter();
 
-    test('admite el signo negativo inicial', () {
+    test('it allows a leading minus sign', () {
       expect(escribir(f, '', '-'), '-');
       expect(escribir(f, '-', '-5'), '-5');
       expect(escribir(f, '-5', '-5.25'), '-5.25');
     });
 
-    test('sigue aceptando positivos', () {
+    test('it still accepts positives', () {
       expect(escribir(f, '', '5'), '5');
       expect(escribir(f, '5', '5,5'), '5,5');
     });
@@ -151,41 +151,41 @@ void main() {
       expect(escribir(f, '-5', ''), '');
     });
 
-    test('bloquea el tercer decimal y las letras', () {
+    test('it blocks the third decimal and letters', () {
       expect(escribir(f, '-5.25', '-5.256'), '-5.25');
       expect(escribir(f, '-5', '-5x'), '-5');
     });
 
-    test('el signo solo va al principio', () {
+    test('the sign only goes at the start', () {
       expect(escribir(f, '5', '5-'), '5');
     });
   });
 
-  group('moneda', () {
+  group('currency', () {
     setUp(reiniciarMoneda);
     tearDown(reiniciarMoneda);
 
-    test('por defecto formatea en pesos colombianos sin decimales', () {
+    test('by default it formats Colombian pesos with no decimals', () {
       expect(pesos(1500), contains('1.500'));
       expect(pesos(1500), isNot(contains(',00')));
     });
 
-    test('configurarMoneda cambia símbolo y decimales', () {
+    test('configurarMoneda changes the symbol and the decimals', () {
       configurarMoneda(moneda: 'USD', idioma: 'en', pais: 'US');
       final s = pesos(1500.5);
       expect(s, contains('1,500.5'));
       expect(s, contains(r'$'));
     });
 
-    test('un locale inexistente no rompe: cae a uno seguro', () {
-      // La combinación idioma_pais puede no existir en intl; el helper
-      // reintenta solo con el idioma en vez de lanzar.
+    test('a nonexistent locale does not break: it falls back to a safe one', () {
+      // The language_country combination may not exist in intl; the helper
+      // retries with the language alone instead of throwing.
       expect(() => configurarMoneda(moneda: 'COP', idioma: 'es', pais: 'ZZ'),
           returnsNormally);
       expect(() => pesos(1000), returnsNormally);
     });
 
-    test('reiniciarMoneda vuelve al valor por defecto', () {
+    test('reiniciarMoneda returns to the default', () {
       configurarMoneda(moneda: 'USD', idioma: 'en', pais: 'US');
       reiniciarMoneda();
       expect(pesos(1500), contains('1.500'));

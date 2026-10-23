@@ -1,6 +1,6 @@
-// Catálogo de referencia: presentaciones habituales de compra en Colombia.
-// El precio entra en cero; cada persona pone el suyo.
-// [nombre, categoría, cantidad, unidad de compra, especial]
+// Reference catalogue: common purchase presentations in Colombia.
+// The price starts at zero; each person sets their own.
+// [nombre, categoría, cantidad, purchase unit, especial]
 
 class ItemCatalogoInsumo {
   final String nombre;

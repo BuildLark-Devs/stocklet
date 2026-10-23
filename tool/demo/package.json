@@ -2,10 +2,10 @@
   "name": "stocklet-demo-seed",
   "version": "1.0.0",
   "private": true,
-  "description": "Siembra un negocio de demo en los emuladores, para tomar capturas de la tienda sin exponer datos reales.",
+  "description": "Seeds a demo business into the emulators, so store screenshots never expose real data.",
   "type": "module",
   "scripts": {
-    "sembrar": "node sembrar.js"
+    "seed": "node seed.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"

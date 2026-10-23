@@ -18,27 +18,27 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:reposteria_app/l10n/app_localizations.dart'; // NUEVO
 
-// Manejador de push en segundo plano (obligatorio, debe ser de nivel superior).
+// Background push handler (mandatory, and it has to be top-level).
 @pragma('vm:entry-point')
 Future<void> _fcmBackgroundHandler(RemoteMessage message) async {}
 
-// Instancia global de Analytics (usada por el observador de navegación).
+// Global Analytics instance (used by the navigation observer).
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
-/// Apunta la app a los emuladores locales en vez de a Firebase de verdad.
+/// Points the app at the local emulators instead of the real Firebase.
 ///
-/// Se activa solo al compilar con `--dart-define=STOCKLET_EMULADOR=true`, que
-/// es lo que usa el negocio de demo para tomar las capturas de la tienda sin
-/// exponer datos reales. Al ser `const`, un build de release lo elimina del
-/// binario: no hay forma de que se cuele en producción.
+/// Only turned on by building with `--dart-define=STOCKLET_EMULATOR=true`,
+/// which is what the demo business uses to take store screenshots without
+/// exposing real data. Being `const`, a release build strips it out of the
+/// binary: there is no way for it to slip into production.
 const bool kUsarEmulador =
     bool.fromEnvironment('STOCKLET_EMULADOR', defaultValue: false);
 
 void _conectarEmuladores() {
-  // Dentro del emulador de Android, `localhost` es el propio dispositivo: la
-  // máquina que corre los emuladores de Firebase se ve como 10.0.2.2. En web y
-  // escritorio sí es localhost. Desde un teléfono físico hay que pasar la IP de
-  // la máquina en la red local con --dart-define=STOCKLET_EMULADOR_HOST=...
+  // Inside the Android emulator, `localhost` is the device itself: the machine
+  // running the Firebase emulators appears as 10.0.2.2. On web and desktop it
+  // really is localhost. From a physical phone you have to pass the machine
+  // address on the local network with --dart-define=STOCKLET_EMULATOR_HOST=...
   const definido = String.fromEnvironment('STOCKLET_EMULADOR_HOST');
   final host = definido.isNotEmpty
       ? definido
@@ -58,7 +58,7 @@ void main() async {
   );
   if (kUsarEmulador) _conectarEmuladores();
 
-  // Crashlytics: captura errores de Flutter y errores asíncronos no atrapados.
+  // Crashlytics: catches Flutter errors and uncaught async errors.
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
@@ -83,7 +83,7 @@ class MiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final acentoId = context.select<DatosApp, String>((d) => d.acentoId);
     final modoTemaId = context.select<DatosApp, String>((d) => d.modoTemaId);
-    // NUEVO: idioma elegido por el usuario (null = seguir el del dispositivo)
+    // Language chosen by the user (null = follow the device one)
     final idiomaId = context.select<DatosApp, String?>((d) => d.idiomaId);
     final acento = colorDeAcento(acentoId);
     final modo = switch (modoTemaId) {
@@ -96,12 +96,12 @@ class MiApp extends StatelessWidget {
       title: 'Stocklet',
       navigatorKey: navigatorKey,
       scaffoldMessengerKey: scaffoldMessengerKey,
-      // Analytics: registra automáticamente las pantallas visitadas.
+      // Analytics: records visited screens automatically.
       navigatorObservers: [FirebaseAnalyticsObserver(analytics: analytics)],
       theme: temaApp(acento: acento),
       darkTheme: temaOscuro(acento: acento),
       themeMode: modo,
-      // NUEVO: si idiomaId es null, Flutter usa el idioma del dispositivo.
+      // If idiomaId is null, Flutter uses the device language.
       locale: idiomaId == null ? null : Locale(idiomaId),
       localizationsDelegates: const [
         AppLocalizations.delegate, // NUEVO
@@ -110,8 +110,8 @@ class MiApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // NUEVO: idiomas soportados. Para agregar otro en el futuro solo
-      // creas su .arb (ej. app_de.arb) y añades aquí su Locale.
+      // Supported languages. To add another one later, create its .arb (say
+      // app_de.arb) and add its Locale here.
       supportedLocales: const [
         Locale('en'),
         Locale('es'),

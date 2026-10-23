@@ -8,7 +8,7 @@ class IngredienteDeReceta {
 
   double get costo => insumo.costoPorUnidad * cantidad;
 
-  // guarda solo el id del insumo, no el insumo entero
+  // stores only the supply id, not the whole supply
   Map<String, dynamic> toMap() {
     return {'insumoId': insumo.id, 'cantidad': cantidad};
   }

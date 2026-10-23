@@ -14,7 +14,7 @@ class WidgetAnalisisVentas extends StatelessWidget {
   static String _cap(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-  // Día de la semana abreviado (1=Lun..7=Dom) localizado.
+  // Localised short weekday (1=Mon..7=Sun).
   static String _diaCorto(int weekday, String locale) =>
       _cap(DateFormat.E(locale).format(DateTime(2024, 1, weekday)));
 

@@ -109,7 +109,7 @@ class DesgloseCosteo extends StatelessWidget {
   }
 }
 
-// Chip de estado del precio (pérdida / por debajo / bien).
+// Price status chip (loss / below / fine).
 class ChipEstadoPrecio extends StatelessWidget {
   final EstadoPrecio estado;
   const ChipEstadoPrecio({super.key, required this.estado});

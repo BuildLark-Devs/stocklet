@@ -1,14 +1,14 @@
-// Cloud Functions para notificaciones push de Stocklet.
-// Envían push cuando: (1) un insumo baja del mínimo, (2) recordatorio diario
-// de pedidos por entregar (hoy o atrasados).
-// Cada usuario recibe el texto en SU idioma (guardado en usuarios/{uid}.idioma).
+// Cloud Functions for Stocklet push notifications.
+// They send a push when: (1) a supply drops below its minimum, (2) the daily
+// reminder of orders due (today or overdue).
+// Each user gets the text in THEIR language (stored in usuarios/{uid}.idioma).
 //
-// Requiere plan Blaze. Despliegue:  firebase deploy --only functions
+// Needs the Blaze plan. Deploy with:  firebase deploy --only functions
 //
-// Node 22 y firebase-admin 14. El SDK 14 borró el espacio de nombres, así que
-// admin.firestore() y compañía ya no existen: todo entra por imports
-// modulares. Y el despliegue tiene que hacerse con el CLI de npm, no con el de
-// winget, que lleva Node 20 dentro y no puede cargar este código. Ver README.
+// Node 22 and firebase-admin 14. SDK 14 removed the namespace, so
+// admin.firestore() and friends no longer exist: everything comes in through
+// modular imports. And deploying has to go through the npm CLI, not the winget
+// one, which bundles Node 20 and cannot load this code. See docs/DEVELOPMENT.md.
 
 const {onDocumentUpdated} =
     require('firebase-functions/v2/firestore');
@@ -25,7 +25,7 @@ initializeApp();
 const IDIOMAS = ['es', 'en', 'pt', 'fr'];
 const IDIOMA_DEFECTO = 'es';
 
-// Textos de las notificaciones por idioma. Los parámetros se pasan como función.
+// Notification copy per language. Parameters are passed as a function.
 const T = {
   es: {
     invTitulo: 'Inventario bajo',
@@ -53,7 +53,7 @@ const T = {
   },
 };
 
-// Devuelve los tokens de los miembros agrupados por idioma:
+// Returns the members' tokens grouped by language:
 //   { es: [...], en: [...] }
 async function tokensPorIdioma(negocioId, excluyeUid) {
   const snap = await getFirestore()
@@ -75,7 +75,7 @@ async function tokensPorIdioma(negocioId, excluyeUid) {
   return grupos;
 }
 
-// Envía a cada grupo de idioma su texto. `construir(t)` devuelve {title, body}.
+// Sends each language group its own copy. `construir(t)` returns {title, body}.
 async function enviarPorIdioma(grupos, construir) {
   for (const lang of Object.keys(grupos)) {
     const {title, body} = construir(T[lang]);
@@ -87,7 +87,7 @@ async function enviarPorIdioma(grupos, construir) {
   }
 }
 
-// (1) Insumo que cruza por debajo de su stock mínimo.
+// (1) A supply crossing below its minimum stock.
 exports.inventarioBajo = onDocumentUpdated(
     'negocios/{negocioId}/insumos/{insumoId}', async (event) => {
       const antes = event.data.before.data();
@@ -105,7 +105,7 @@ exports.inventarioBajo = onDocumentUpdated(
       }));
     });
 
-// (2) Recordatorio diario de pedidos por entregar (hoy o atrasados).
+// (2) Daily reminder of orders due (today or overdue).
 exports.recordatorioPedidos = onSchedule(
     {schedule: 'every day 08:00', timeZone: 'America/Bogota'}, async () => {
       const ahora = new Date();
@@ -138,10 +138,11 @@ exports.recordatorioPedidos = onSchedule(
       }
     });
 
-// (3) Eliminar cuenta (requisito de las tiendas). El cliente ya reautenticó
-// antes de llamar. Si el usuario es DUEÑO, se borra TODO el negocio y se
-// desvincula a los demás miembros. Si es socio/empleado, solo se borra su
-// propia cuenta. Al final se elimina el usuario de Firebase Auth.
+// (3) Account deletion (a store requirement). The client has already
+// reauthenticated before calling. If the user is the OWNER, the WHOLE business
+// is deleted and the other members are detached. If they are a partner or
+// employee, only their own account goes. Finally the Firebase Auth user is
+// removed.
 exports.eliminarCuenta = onCall(async (request) => {
   const uid = request.auth && request.auth.uid;
   if (!uid) {
@@ -155,38 +156,38 @@ exports.eliminarCuenta = onCall(async (request) => {
   const rol = miDoc.exists ? miDoc.get('rol') : null;
 
   if (negocioId && rol === 'dueno') {
-    // --- DUEÑO: borrar todo el negocio ---
-    // 1) Todos los miembros del negocio (incluido el dueño).
+    // --- OWNER: delete the whole business ---
+    // 1) Every member of the business (the owner included).
     const miembros = await db.collection('usuarios')
         .where('negocioId', '==', negocioId).get();
     const batch = db.batch();
     miembros.forEach((d) => batch.delete(d.ref));
-    // 2) Invitaciones pendientes de ese negocio.
+    // 2) That business's pending invitations.
     const invitaciones = await db.collection('invitaciones')
         .where('negocioId', '==', negocioId).get();
     invitaciones.forEach((d) => batch.delete(d.ref));
     await batch.commit();
-    // 3) Todo el árbol del negocio (subcolecciones incluidas).
+    // 3) The entire business tree (subcollections included).
     await db.recursiveDelete(db.collection('negocios').doc(negocioId));
-    // 4) Archivos del negocio en Storage.
+    // 4) The business files in Storage.
     try {
       await bucket.deleteFiles({prefix: `negocios/${negocioId}/`});
     } catch (e) {
       console.error('Error borrando storage del negocio', e);
     }
   } else if (miDoc.exists) {
-    // --- Socio / empleado: borrar solo su cuenta ---
+    // --- Partner / employee: delete only their account ---
     await miDoc.ref.delete();
   }
 
-  // Archivos personales del usuario en Storage.
+  // The user's personal files in Storage.
   try {
     await bucket.deleteFiles({prefix: `usuarios/${uid}/`});
   } catch (e) {
     console.error('Error borrando storage del usuario', e);
   }
 
-  // Finalmente, eliminar el usuario de Firebase Auth.
+  // Finally, remove the Firebase Auth user.
   try {
     await getAuth().deleteUser(uid);
   } catch (e) {

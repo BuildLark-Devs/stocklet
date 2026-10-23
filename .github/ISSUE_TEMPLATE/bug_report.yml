@@ -1,0 +1,46 @@
+name: Bug report
+description: Something behaves differently from what it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in as an employee
+        2. Register a sale of a product with a recipe
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where
+      options:
+        - Android
+        - iOS
+        - Web / PWA
+    validations:
+      required: true
+
+  - type: input
+    id: role
+    attributes:
+      label: Role in the business
+      description: Owner, partner or employee — permissions change the behaviour.
+      placeholder: employee
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs
+      description: Remove any real customer name, email or phone number first.

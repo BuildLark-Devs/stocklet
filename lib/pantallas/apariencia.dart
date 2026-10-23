@@ -7,7 +7,7 @@ import '../tema.dart';
 class PantallaApariencia extends StatelessWidget {
   const PantallaApariencia({super.key});
 
-  // Nombre localizado del color de acento por su id.
+  // Localised accent colour name, by its id.
   static String _nombreAcento(AppLocalizations t, String id) {
     switch (id) {
       case 'verde':

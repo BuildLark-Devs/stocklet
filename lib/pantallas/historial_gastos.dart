@@ -75,7 +75,7 @@ class _PantallaHistorialGastosState extends State<PantallaHistorialGastos> {
             set.add(DateTime(g.fecha.year, g.fecha.month));
           }
           final todosMeses = set.toList()..sort((a, b) => b.compareTo(a));
-          // Gratis = últimos 3 meses de historial; el resto requiere Pro.
+          // Free = the last 3 months of history; the rest requires Pro.
           final hayMasHistorial = !datos.esPro && todosMeses.length > 3;
           final meses =
               datos.esPro ? todosMeses : todosMeses.take(3).toList();

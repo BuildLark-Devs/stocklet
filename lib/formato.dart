@@ -17,7 +17,7 @@ void configurarMoneda({
     _formato = NumberFormat.currency(
       locale: '${idioma}_$pais', symbol: simbolo, decimalDigits: decimales);
   } catch (_) {
-    // Si esa combinación de locale no existe, caemos a una segura
+    // If that locale combination does not exist, fall back to a safe one
     _formato = NumberFormat.currency(
       locale: idioma, symbol: simbolo, decimalDigits: decimales);
   }
@@ -31,11 +31,11 @@ void reiniciarMoneda() {
 String pesos(num valor) => _formato.format(valor);
 
 // ---------------------------------------------------------------------------
-// Utilidades de cantidades y búsqueda
+// Quantity and search helpers
 // ---------------------------------------------------------------------------
 
-/// Quita tildes/acentos y pasa a minúsculas, para buscar sin importar tildes.
-/// Ej: "Azúcar" y "azucar" quedan iguales ("azucar").
+/// Strips accents and lowercases, so searching ignores diacritics.
+/// E.g. "Azúcar" and "azucar" both become "azucar".
 String sinTildes(String s) {
   var r = s.toLowerCase();
   const con = 'áàäâãéèëêíìïîóòöôõúùüûñç';
@@ -46,7 +46,7 @@ String sinTildes(String s) {
   return r;
 }
 
-/// Muestra una cantidad con hasta 2 decimales, sin ceros sobrantes.
+/// Shows a quantity with up to 2 decimals, without trailing zeros.
 /// 2 -> "2", 2.5 -> "2.5", 2.25 -> "2.25".
 String cantidadStr(num v) {
   final d = v.toDouble();
@@ -57,11 +57,11 @@ String cantidadStr(num v) {
   return s;
 }
 
-/// Convierte texto (acepta coma o punto) a double. Vacío/ inválido -> 0.
+/// Converts text (comma or dot accepted) to a double. Empty/invalid -> 0.
 double parseCantidad(String s) =>
     double.tryParse(s.trim().replaceAll(',', '.')) ?? 0;
 
-/// Formatter para inputs: permite un número con hasta 2 decimales (coma o punto).
+/// Input formatter: allows a number with up to 2 decimals (comma or dot).
 class Decimal2Formatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -73,8 +73,8 @@ class Decimal2Formatter extends TextInputFormatter {
   }
 }
 
-/// Como Decimal2Formatter pero admite un signo negativo inicial. Útil para
-/// campos como el stock, que puede quedar negativo y hay que poder corregirlo.
+/// Like Decimal2Formatter but accepts a leading minus sign. Useful for fields
+/// such as stock, which can go negative and has to be correctable.
 class DecimalSignedFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(

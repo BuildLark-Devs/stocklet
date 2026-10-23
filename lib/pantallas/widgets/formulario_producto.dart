@@ -199,7 +199,7 @@ class _FormularioProductoState extends State<FormularioProducto> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // --- Lo básico ---
+          // --- The basics ---
           _seccion(m, t.prodBasico),
           Card(
             child: Padding(

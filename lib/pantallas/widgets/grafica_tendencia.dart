@@ -17,7 +17,7 @@ class GraficaTendencia extends StatelessWidget {
     final m = AppColores.of(context);
     final t = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-    // Abreviatura de mes localizada (ej. "jul.") para el eje X en rangos largos.
+    // Localised month abbreviation (e.g. "jul.") for the X axis on long ranges.
     String cap(String s) =>
         s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
     final puntos = datos.tendenciaGanancia(

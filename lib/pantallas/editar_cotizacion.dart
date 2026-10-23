@@ -120,8 +120,8 @@ class _EditarCotizacionState extends State<EditarCotizacion> {
       aplicaIva: aplicaIva,
       tasaIva: parseCantidad(ivaCtrl.text),
       notas: notaCtrl.text.trim(),
-      // Se arrastra tal cual: sin esto, editar una cotización ya convertida
-      // borraría el enlace y dejaría crear un segundo pedido.
+      // Carried over as is: without this, editing an already-converted quote
+      // would clear the link and allow a second order.
       pedidoId: widget.cotizacion.pedidoId,
     );
   }
@@ -150,8 +150,8 @@ class _EditarCotizacionState extends State<EditarCotizacion> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(t.cotizaGuardada)));
 
-    // Si acaba de quedar aceptada y aún no generó pedido, ofrecer crearlo
-    // aquí mismo: es el momento en que se duplicaba el trabajo.
+    // If it has just been accepted and has no order yet, offer to create one
+    // right here: this is the moment where the work used to be duplicated.
     if (cotizacion.estado == 'aceptada' && !cotizacion.convertida) {
       await _ofrecerConvertir(cotizacion);
     }
@@ -162,7 +162,7 @@ class _EditarCotizacionState extends State<EditarCotizacion> {
     final t = AppLocalizations.of(context)!;
     final datos = context.read<DatosApp>();
 
-    // Una cotización sin nada que cobrar no puede volverse un pedido.
+    // A quote with nothing to charge cannot become an order.
     if (cotizacion.lineas.isEmpty && cotizacion.total <= 0) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(t.convertirSinLineas)));
@@ -170,7 +170,7 @@ class _EditarCotizacionState extends State<EditarCotizacion> {
     }
 
     final r = await mostrarDialogoConvertirPedido(context, cotizacion);
-    // Cancelar no escribe nada: la cotización queda aceptada y sin pedido.
+    // Cancelling writes nothing: the quote stays accepted and without an order.
     if (r == null || !mounted) return;
 
     final pedido = datos.convertirCotizacionEnPedido(

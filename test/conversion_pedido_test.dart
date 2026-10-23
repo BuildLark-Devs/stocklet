@@ -1,8 +1,8 @@
-// Convertir una cotización aceptada en pedido.
+// Converting an accepted quote into an order.
 //
-// Lo que se fija aquí es lo que el cliente termina pagando y lo que la cocina
-// termina consumiendo. Un error en cualquiera de las dos cosas no se nota
-// hasta que ya costó dinero.
+// What is pinned down here is what the customer ends up paying and what the
+// kitchen ends up consuming. A mistake in either one goes unnoticed until it
+// has already cost money.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reposteria_app/models/cotizacion.dart';
@@ -19,7 +19,7 @@ Insumo insumo(String id, double costo, {double stock = 1000}) => Insumo(
       stockActual: stock,
     );
 
-/// Una torta: cuesta $1.000 de materia prima el lote, rinde 1, se vende a 50k.
+/// A cake: $1,000 of raw materials per batch, yields 1, sells for 50k.
 Producto torta({double rendimiento = 1}) => Producto(
       id: 'torta',
       nombre: 'Torta',
@@ -67,13 +67,13 @@ Pedido convertir(Cotizacion c, {List<Producto>? productos}) =>
     );
 
 void main() {
-  group('el dinero cuadra', () {
-    test('el total del pedido es exactamente el de la cotización', () {
+  group('the money adds up', () {
+    test('the order total is exactly the quote total', () {
       final c = cotizacion();
       expect(convertir(c).precio, c.total);
     });
 
-    test('cuadra con adiciones, domicilio, descuento e IVA a la vez', () {
+    test('it adds up with add-ons, delivery, discount and VAT at once', () {
       final c = cotizacion(
         lineas: [linea('Torta', 50000, 2, productoId: 'torta')],
         adiciones: [AdicionCotizacion(nombre: 'Vela', valor: 3000)],
@@ -83,11 +83,11 @@ void main() {
       );
       final p = convertir(c);
       expect(p.precio, closeTo(c.total, 0.001));
-      // Los ítems solo llevan las líneas; el resto va en el ajuste.
+      // The items only carry the lines; everything else goes in the adjustment.
       expect(p.precio - p.otroValor, closeTo(100000, 0.001));
     });
 
-    test('el ajuste queda negativo si el descuento pesa más que los extras',
+    test('the adjustment goes negative if the discount outweighs the extras',
         () {
       final c = cotizacion(
         lineas: [linea('Torta', 50000, 1, productoId: 'torta')],
@@ -98,18 +98,18 @@ void main() {
       expect(p.precio, closeTo(c.total, 0.001)); // sigue cuadrando
     });
 
-    test('el costo del pedido es la suma de los costos de sus ítems', () {
+    test('the order cost is the sum of its items costs', () {
       final c = cotizacion(lineas: [
         linea('Torta', 50000, 3, productoId: 'torta'),
       ]);
-      // La torta cuesta $1.000 producirla; 3 unidades = $3.000.
+      // The cake costs $1,000 to make; 3 units = $3,000.
       expect(convertir(c).costo, closeTo(3000, 0.001));
     });
   });
 
-  group('el precio cotizado manda', () {
-    test('se conserva aunque el producto haya subido de precio', () {
-      // Se cotizó a 40.000; hoy el catálogo dice 50.000.
+  group('the quoted price rules', () {
+    test('it is kept even if the product price went up', () {
+      // It was quoted at 40,000; today the catalogue says 50,000.
       final c = cotizacion(
         lineas: [linea('Torta', 40000, 1, productoId: 'torta')],
       );
@@ -118,7 +118,7 @@ void main() {
       expect(p.precio, 40000);
     });
 
-    test('pero el costo y la receta salen del producto de hoy', () {
+    test('but cost and recipe come from the product as it is today', () {
       final c = cotizacion(
         lineas: [linea('Torta', 40000, 1, productoId: 'torta')],
       );
@@ -128,28 +128,28 @@ void main() {
     });
   });
 
-  group('qué descuenta inventario y qué no', () {
-    test('una línea con producto trae copia de receta', () {
+  group('what deducts stock and what does not', () {
+    test('a line with a product carries a recipe snapshot', () {
       final p = convertir(cotizacion());
       expect(p.items.first.receta.single.insumoId, 'harina');
       expect(p.items.first.receta.single.cantidad, 100);
     });
 
-    test('la receta se prorratea por el rendimiento del producto', () {
-      // 100 g de harina por lote, y el lote rinde 50 unidades.
+    test('the recipe is prorated by the product yield', () {
+      // 100 g of flour per batch, and the batch yields 50 units.
       final p = convertir(cotizacion(),
           productos: [torta(rendimiento: 50)]);
       expect(p.items.first.receta.single.cantidad, closeTo(2, 0.001));
     });
 
-    test('una línea escrita a mano no lleva costo ni receta', () {
+    test('a hand-written line carries no cost and no recipe', () {
       final c = cotizacion(lineas: [linea('Decoración especial', 20000, 1)]);
       final p = convertir(c);
       expect(p.items.first.costoUnitario, 0);
       expect(p.items.first.receta, isEmpty);
     });
 
-    test('un producto borrado del catálogo se degrada, no revienta', () {
+    test('a product deleted from the catalogue degrades, it does not blow up', () {
       final c = cotizacion(
         lineas: [linea('Torta', 50000, 1, productoId: 'ya-no-existe')],
       );
@@ -160,7 +160,7 @@ void main() {
       expect(p.items.first.receta, isEmpty);
     });
 
-    test('mezcla de líneas: cada una se resuelve por separado', () {
+    test('mixed lines: each one resolves on its own', () {
       final c = cotizacion(lineas: [
         linea('Torta', 50000, 1, productoId: 'torta'),
         linea('Montaje', 15000, 1),
@@ -171,20 +171,20 @@ void main() {
     });
   });
 
-  group('el resto del pedido', () {
-    test('lleva el cliente de la cotización y el teléfono capturado', () {
+  group('the rest of the order', () {
+    test('it carries the quote customer and the captured phone', () {
       final p = convertir(cotizacion());
       expect(p.cliente.nombre, 'Ana');
       expect(p.cliente.telefono, '3110000000');
     });
 
-    test('nace sin entregar ni archivar', () {
+    test('it is born neither delivered nor archived', () {
       final p = convertir(cotizacion());
       expect(p.entregado, isFalse);
       expect(p.archivado, isFalse);
     });
 
-    test('la descripción resume las líneas', () {
+    test('the description summarises the lines', () {
       final c = cotizacion(lineas: [
         linea('Torta', 50000, 2, productoId: 'torta'),
         linea('Galletas', 2000, 12),
@@ -192,31 +192,31 @@ void main() {
       expect(convertir(c).descripcion, '2x Torta, 12x Galletas');
     });
 
-    test('una cotización sin líneas usa el texto de respaldo', () {
+    test('a quote with no lines falls back to the placeholder text', () {
       final c = cotizacion(lineas: []);
       expect(convertir(c).descripcion, 'Pedido');
     });
 
-    test('respeta la fecha de entrega indicada', () {
+    test('it honours the given delivery date', () {
       expect(convertir(cotizacion()).fechaEntrega, DateTime(2026, 10, 1));
     });
   });
 
-  group('consumo de insumos', () {
-    test('suma receta por cantidad, agrupando por insumo', () {
+  group('supply consumption', () {
+    test('it sums recipe by quantity, grouping per supply', () {
       final c = cotizacion(lineas: [
         linea('Torta', 50000, 3, productoId: 'torta'),
       ]);
-      // 100 g por unidad × 3 unidades.
+      // 100 g per unit × 3 units.
       expect(consumoDeInsumos(convertir(c)), {'harina': 300.0});
     });
 
-    test('los ítems sin receta no aportan nada', () {
+    test('items with no recipe contribute nothing', () {
       final c = cotizacion(lineas: [linea('Montaje', 15000, 5)]);
       expect(consumoDeInsumos(convertir(c)), isEmpty);
     });
 
-    test('acumula el mismo insumo usado por varias líneas', () {
+    test('it accumulates the same supply used by several lines', () {
       final c = cotizacion(lineas: [
         linea('Torta', 50000, 2, productoId: 'torta'),
         linea('Torta grande', 80000, 1, productoId: 'torta'),
@@ -225,14 +225,14 @@ void main() {
     });
   });
 
-  group('faltantes de inventario', () {
-    test('lista vacía cuando alcanza', () {
+  group('stock shortfalls', () {
+    test('an empty list when there is enough', () {
       final p = convertir(cotizacion());
       expect(faltantesDeInventario(p, [insumo('harina', 10, stock: 500)]),
           isEmpty);
     });
 
-    test('nombra el insumo que no alcanza', () {
+    test('it names the supply that falls short', () {
       final c = cotizacion(lineas: [
         linea('Torta', 50000, 10, productoId: 'torta'), // consume 1000 g
       ]);
@@ -242,19 +242,20 @@ void main() {
       expect(faltan, ['harina']);
     });
 
-    test('justo lo necesario no se considera faltante', () {
+    test('exactly enough does not count as a shortfall', () {
       final p = convertir(cotizacion()); // consume 100 g
       expect(faltantesDeInventario(p, [insumo('harina', 10, stock: 100)]),
           isEmpty);
     });
 
-    test('un insumo que ya no existe no se reporta', () {
-      // Tampoco se descuenta al entregar, así que avisar de él confundiría.
+    test('a supply that no longer exists is not reported', () {
+      // It is not deducted on delivery either, so warning about it would
+      // only confuse.
       final p = convertir(cotizacion());
       expect(faltantesDeInventario(p, []), isEmpty);
     });
 
-    test('el stock negativo también cuenta como faltante', () {
+    test('negative stock also counts as a shortfall', () {
       final p = convertir(cotizacion());
       expect(faltantesDeInventario(p, [insumo('harina', 10, stock: -5)]),
           ['harina']);

@@ -3,7 +3,7 @@ import 'package:reposteria_app/l10n/app_localizations.dart';
 import '../models/insumo.dart';
 import '../formato.dart';
 
-// Abre un diálogo con buscador y devuelve el insumo elegido (o null si cancela)
+// Opens a searchable dialog and returns the chosen supply (null if cancelled)
 Future<Insumo?> elegirInsumo(BuildContext context, List<Insumo> insumos) {
   return showDialog<Insumo>(
     context: context,

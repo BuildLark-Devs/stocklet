@@ -6,7 +6,7 @@ import '../datos_app.dart';
 import '../tema.dart';
 import 'cambiar_contrasena.dart';
 
-// Nombres de cada idioma en su propio idioma (autónimos). No se traducen.
+// Each language name in its own language (autonyms). Not translated.
 const Map<String, String> kNombresIdioma = {
   'es': 'Español',
   'en': 'English',
@@ -17,7 +17,7 @@ const Map<String, String> kNombresIdioma = {
 class PantallaAjustesSeguridad extends StatelessWidget {
   const PantallaAjustesSeguridad({super.key});
 
-  // Selector del idioma de la app (preferencia GLOBAL del dispositivo).
+  // App language picker (a GLOBAL device preference).
   void _elegirIdioma(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final datos = context.read<DatosApp>();
@@ -31,7 +31,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Opción automática: sigue el idioma del dispositivo.
+              // Automatic option: follows the device language.
               ListTile(
                 leading: Icon(
                   actual == null
@@ -44,7 +44,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
                   Navigator.pop(dc);
                 },
               ),
-              // Un ítem por cada idioma disponible.
+              // One item per available language.
               ...kNombresIdioma.entries.map(
                 (e) => ListTile(
                   leading: Icon(
@@ -97,7 +97,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
     final m = AppColores.of(context);
     final datos = context.read<DatosApp>();
 
-    // 1) Advertencia (más fuerte si es dueño: borra todo el negocio).
+    // 1) Warning (stronger for the owner: it wipes the whole business).
     final seguir = await showDialog<bool>(
       context: context,
       builder: (dc) => AlertDialog(
@@ -119,7 +119,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
     );
     if (seguir != true || !context.mounted) return;
 
-    // 2) Reautenticación: pedir la contraseña.
+    // 2) Reauthentication: ask for the password.
     final passCtrl = TextEditingController();
     final confirmar = await showDialog<bool>(
       context: context,
@@ -156,7 +156,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
     passCtrl.dispose();
     if (confirmar != true || !context.mounted) return;
 
-    // 3) Ejecutar con indicador de carga.
+    // 3) Run it with a loading indicator.
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -166,7 +166,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
     if (!context.mounted) return;
     Navigator.pop(context); // cierra el indicador de carga
     if (error == null) {
-      // Éxito: la sesión ya se cerró; volvemos al inicio (login).
+      // Success: the session is already closed; back to the start (login).
       Navigator.of(context).popUntil((r) => r.isFirst);
       return;
     }
@@ -187,7 +187,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
         negocio != null ? CurrencyService().findByCode(negocio.moneda) : null;
     final monedaTexto =
         cur != null ? '${cur.name} (${cur.code})' : (negocio?.moneda ?? '-');
-    // Idioma de la app: preferencia global (no el negocio.idioma).
+    // App language: a global preference (not negocio.idioma).
     final idiomaApp = datos.idiomaId == null
         ? t.idiomaAutomatico
         : (kNombresIdioma[datos.idiomaId] ?? datos.idiomaId!);
@@ -209,7 +209,7 @@ class PantallaAjustesSeguridad extends StatelessWidget {
                   const Divider(height: 1),
                   _fila(m, Icons.payments_outlined, t.campoMoneda, monedaTexto),
                   const Divider(height: 1),
-                  // Fila Idioma editable: abre el selector de idioma de la app.
+                  // Editable Language row: opens the app language picker.
                   InkWell(
                     onTap: () => _elegirIdioma(context),
                     child: Padding(

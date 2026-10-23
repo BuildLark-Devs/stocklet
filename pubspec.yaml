@@ -1,5 +1,5 @@
 name: reposteria_app
-description: "A new Flutter project."
+description: "Stocklet — business management for micro-businesses: sales, inventory, expenses, orders and team roles."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -70,7 +70,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
-# Ícono de la app (Stocklet). Genera todos los tamaños con:
+# App icon (Stocklet). Regenerate every size with:
 #   flutter pub get  &&  dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
@@ -92,8 +92,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Genera la clase AppLocalizations a partir de los .arb en lib/l10n
-  # (configurado en l10n.yaml en la raíz del proyecto).
+  # Generates the AppLocalizations class from the .arb files in lib/l10n
+  # (configured in l10n.yaml at the project root).
   generate: true
 
   assets:

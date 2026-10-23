@@ -11,8 +11,8 @@ import 'editar_insumo.dart';
 import 'editar_pedido.dart';
 import 'ver_receta.dart';
 
-// Buscador global desde el inicio: busca en productos, insumos, pedidos,
-// recetas y catálogos, y salta a la pantalla de cada resultado.
+// Global search from the home screen: searches products, supplies, orders,
+// recipes and catalogues, and jumps to the screen of each result.
 class PantallaBuscador extends StatefulWidget {
   const PantallaBuscador({super.key});
 

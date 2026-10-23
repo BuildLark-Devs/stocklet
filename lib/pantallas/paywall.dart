@@ -4,7 +4,7 @@ import 'package:reposteria_app/l10n/app_localizations.dart';
 import '../servicios/suscripcion_service.dart';
 import '../tema.dart';
 
-// Esta pantalla solo se usa cuando SuscripcionService.activa = true.
+// This screen is only used when SuscripcionService.activa = true.
 class PantallaPaywall extends StatefulWidget {
   const PantallaPaywall({super.key});
 

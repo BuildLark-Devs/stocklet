@@ -1,19 +1,19 @@
 # Stocklet
 
-App de gestión para microempresas (ventas, inventario, gastos, pedidos, notas y equipo con roles), hecha en **Flutter + Firebase**. Multiempresa y multi-idioma (es/en/pt/fr).
+Business management app for micro-businesses (sales, inventory, expenses, orders, notes and a team with roles), built with **Flutter + Firebase**. Multi-company and multi-language (es/en/pt/fr).
 
-Publicada por **BuildLark S.A.S.** · Package: `com.buildlark.stocklet`
+Published by **BuildLark S.A.S.** · Package: `com.buildlark.stocklet`
 
-> Nota: el nombre interno del paquete Dart sigue siendo `reposteria_app` (histórico, no afecta a los usuarios).
+> Note: the internal Dart package is still named `reposteria_app` (historical, invisible to users). Firestore collection and field names are Spanish too — they are live production data, so they are not renamed.
 
 ## Stack
 
 - **Flutter / Dart** (Android, iOS, web/PWA).
 - **Firebase**: Auth, Firestore, Storage, Cloud Functions, Cloud Messaging, Analytics, Crashlytics.
-- **RevenueCat** (`purchases_flutter`) para suscripciones (freemium; inactivo hasta configurar la cuenta de Play).
-- i18n con ARB + `gen-l10n`.
+- **RevenueCat** (`purchases_flutter`) for subscriptions (freemium; inactive until the Play account is set up).
+- i18n with ARB + `gen-l10n`.
 
-## Puesta en marcha
+## Getting started
 
 ```
 flutter pub get
@@ -21,100 +21,101 @@ flutter gen-l10n
 flutter run
 ```
 
-Requiere los archivos de configuración de Firebase (no versionados): `android/app/google-services.json`, `lib/firebase_options.dart`, y para iOS `ios/Runner/GoogleService-Info.plist`.
+Needs the Firebase configuration files, which are not versioned: `android/app/google-services.json`, `lib/firebase_options.dart`, and for iOS `ios/Runner/GoogleService-Info.plist`.
 
-## Comandos frecuentes
+## Common commands
 
 ```
 flutter analyze
-flutter build appbundle              # .aab para Google Play
+flutter test
+flutter build appbundle              # .aab for Google Play
 firebase deploy --only functions     # Cloud Functions
-firebase deploy --only hosting       # web/ (tras flutter build web)
+firebase deploy --only hosting       # web/ (after flutter build web)
 ```
 
 ## Cloud Functions
 
-Tres funciones en `functions/`: `inventarioBajo` (push cuando un insumo cruza su
-mínimo), `recordatorioPedidos` (aviso diario de pedidos por entregar) y
-`eliminarCuenta` (borrado de cuenta, requisito de las tiendas). Requieren plan
-Blaze.
+Three functions in `functions/`: `inventarioBajo` (push when a supply crosses
+its minimum), `recordatorioPedidos` (daily notice of orders due) and
+`eliminarCuenta` (account deletion, a store requirement). They need the Blaze
+plan.
 
-Corren en **Node 22**. Se subió desde Node 20 porque Google lo apaga el
-2026-10-30, y con él vinieron `firebase-admin` 14 y `firebase-functions` 7.
+They run on **Node 22**. The move up from Node 20 was forced by Google shutting
+it down on 2026-10-30, and it brought `firebase-admin` 14 and
+`firebase-functions` 7 with it.
 
-**`firebase-admin` 14 eliminó el espacio de nombres**: `admin.firestore()`,
-`admin.auth()`, `admin.messaging()` y `admin.storage()` ya no existen. Todo entra
-por imports modulares (`getFirestore()`, `getAuth()`, …). Si algún día se copia
-código de un ejemplo viejo, fallará con `admin.X is not a function`.
+**`firebase-admin` 14 removed the namespace**: `admin.firestore()`,
+`admin.auth()`, `admin.messaging()` and `admin.storage()` no longer exist.
+Everything goes through modular imports (`getFirestore()`, `getAuth()`, …). Code
+copied from an older example will fail with `admin.X is not a function`.
 
-**Hay que desplegar con el CLI de npm, no con el de winget.** `firebase-admin` 14
-arrastra `jose`, que es solo ESM, y el CLI empaquetado de winget lleva Node 20
-dentro y revienta al analizar el código:
+**Deploy with the npm CLI, not the winget one.** `firebase-admin` 14 pulls in
+`jose`, which is ESM only, and the standalone winget CLI bundles Node 20 inside
+and dies while merely parsing the code:
 
 ```
 Error [ERR_REQUIRE_ESM]: require() of ES Module .../jose/dist/webapi/index.js
 ```
 
-El de npm usa el Node del sistema. Si `firebase --version` no dice 15 o más:
+The npm one uses the system Node. If `firebase --version` reports less than 15:
 
 ```
 npm install -g firebase-tools
 winget uninstall Google.FirebaseCLI
 ```
 
-Para probarlas antes de desplegar, los emuladores cargan las tres si arrancan con
-`--only functions,firestore,auth,storage`; el log debe decir
-`Using node@22 from host`. `recordatorioPedidos` queda fuera sin el emulador de
-pubsub, pero su handler se puede llamar a mano con `.run({})`.
+To exercise them before deploying, the emulators load all three when started
+with `--only functions,firestore,auth,storage`; the log must say
+`Using node@22 from host`. `recordatorioPedidos` is skipped without the pubsub
+emulator, but its handler can be called by hand with `.run({})`.
 
-## Negocio de demo (capturas de la tienda)
+## Demo business (store screenshots)
 
-Las capturas de la ficha de Google Play **no deben salir del negocio real**: las
-pantallas muestran nombres y teléfonos de clientes, ventas, costos y márgenes, y
-una captura en Play es pública y permanente.
+Google Play listing screenshots **must not come from the real business**: the
+screens show customer names and phone numbers, sales, costs and margins, and a
+screenshot on Play is public and permanent.
 
-Para eso hay un negocio de demo sembrado en los emuladores. El `--project` tiene
-que ser el mismo de `firebase_options.dart`: el emulador de Firestore separa los
-datos por proyecto, así que con otro nombre la app entra pero encuentra la base
-vacía y te manda a crear negocio. En una terminal:
+That is what the demo business seeded into the emulators is for. The `--project`
+has to match the one in `firebase_options.dart`: the Firestore emulator
+partitions data by project, so under any other name the app signs in, finds an
+empty database and sends you to create a business. In one terminal:
 
 ```
 firebase emulators:start --only auth,firestore,storage --project mi-reposteria-app
 ```
 
-En otra, una sola vez `npm install` dentro de `tool/demo`, y luego:
+In another, `npm install` once inside `tool/demo`, and then:
 
 ```
 cd tool/demo
-npm run sembrar
+npm run seed
 ```
 
-Y la app apuntando a los emuladores:
+And the app pointed at the emulators:
 
 ```
-flutter run --dart-define=STOCKLET_EMULADOR=true
+flutter run --dart-define=STOCKLET_EMULATOR=true
 ```
 
-Entrar con `demo@stocklet.app` / `demo1234` (credenciales del emulador; no
-existen en el proyecto real). Volver a sembrar deja todo igual que la primera
-vez, así que las capturas son repetibles.
+Sign in with `demo@stocklet.app` / `demo1234` (emulator credentials; they do not
+exist in the real project). Seeding again leaves everything exactly as the first
+time, so the screenshots are repeatable.
 
-Los emuladores tienen que seguir corriendo mientras usas la app: si los paras,
-el login falla con un error genérico y los datos sembrados se pierden (se
-vuelven a sembrar en segundos).
+The emulators have to keep running while you use the app: stop them and sign-in
+fails with a generic error and the seeded data is gone (it reseeds in seconds).
 
-La dirección del host se resuelve sola: `10.0.2.2` en el emulador de Android,
-`localhost` en web y escritorio. Desde un **teléfono físico** hay que pasar la
-IP de tu máquina en la red local:
+The host address resolves itself: `10.0.2.2` on the Android emulator,
+`localhost` on web and desktop. From a **physical phone** you have to pass your
+machine's address on the local network:
 
 ```
-flutter run --dart-define=STOCKLET_EMULADOR=true --dart-define=STOCKLET_EMULADOR_HOST=192.168.1.X
+flutter run --dart-define=STOCKLET_EMULATOR=true --dart-define=STOCKLET_EMULATOR_HOST=192.168.1.X
 ```
 
-**Si el emulador de Android no alcanza `10.0.2.2`** (síntoma: el login falla con
-el error genérico, y `adb shell nc -w 3 10.0.2.2 9099` responde
-`Network is unreachable`), su stack de red está roto. En vez de pelearse con
-él, se tuneliza por el cable de depuración:
+**If the Android emulator cannot reach `10.0.2.2`** (symptom: sign-in fails with
+the generic error, and `adb shell nc -w 3 10.0.2.2 9099` answers
+`Network is unreachable`), its network stack is broken. Rather than fight it,
+tunnel through the debug cable:
 
 ```
 adb reverse tcp:8080 tcp:8080
@@ -122,60 +123,61 @@ adb reverse tcp:9099 tcp:9099
 adb reverse tcp:9199 tcp:9199
 ```
 
-Y se compila apuntando a `localhost`, que ahora sale por el túnel:
+And build pointing at `localhost`, which now goes out through the tunnel:
 
 ```
-flutter run --dart-define=STOCKLET_EMULADOR=true --dart-define=STOCKLET_EMULADOR_HOST=localhost
+flutter run --dart-define=STOCKLET_EMULATOR=true --dart-define=STOCKLET_EMULATOR_HOST=localhost
 ```
 
-Los túneles se pierden al reiniciar el AVD; hay que volver a crearlos.
+The tunnels are lost when the AVD restarts and have to be recreated.
 
-El interruptor `STOCKLET_EMULADOR` es `const` y está apagado por defecto: un
-build de release lo elimina del binario.
+The `STOCKLET_EMULATOR` switch is `const` and off by default: a release build
+strips it out of the binary.
 
-## Pruebas
+## Tests
 
-Lógica pura (costeo, unidades, formato):
+Pure logic (costing, units, formatting):
 
 ```
 flutter test
 ```
 
-Las reglas de seguridad tienen su propia suite, aparte (ver abajo).
+The security rules have their own suite, separately (see below).
 
-## Reglas de seguridad
+## Security rules
 
-Las reglas viven en el repositorio y son la única barrera real entre un negocio
-y los datos de otro (la UI solo oculta botones):
+The rules live in the repository and are the only real barrier between one
+business and another's data (the UI merely hides buttons):
 
-- `firestore.rules` — aislamiento por negocio y permisos por rol (`dueno`,
+- `firestore.rules` — per-business isolation and role permissions (`dueno`,
   `socio`, `empleado`).
-- `storage.rules` — fotos de perfil, logo del negocio y catálogos en PDF.
+- `storage.rules` — profile photos, business logo and PDF catalogues.
 
-Tienen una suite que las ejerce contra el emulador. Requiere Java y una vez
-`npm install` dentro de `test/rules`:
+They have a suite that exercises them against the emulator. It needs Java, and
+`npm install` once inside `test/rules`:
 
 ```
 cd test/rules
 npm test
 ```
 
-Para desplegarlas (sobrescribe lo que haya en la consola de Firebase):
+To deploy them (this overwrites whatever is in the Firebase console):
 
 ```
 firebase deploy --only firestore:rules,storage
 ```
 
-Ojo con el nombre del objetivo: `firestore:rules` existe, pero `storage:rules`
-no. En Storage lo que va después de los dos puntos es un *deploy target* de
-bucket, así que las reglas van con `storage` a secas.
+Mind the target name: `firestore:rules` exists, but `storage:rules` does not. In
+Storage, what follows the colon is a bucket *deploy target*, so the rules go up
+with plain `storage`.
 
-## Documentación
+## Documentation
 
-- `docs/ficha-play.md` — guion de capturas y textos de la ficha de Google Play.
-- `docs/data-safety.md` — inventario de datos para el formulario de Seguridad de
-  los datos de Google Play. Hay que actualizarlo cuando la app recoja un dato nuevo.
+- `CONTRIBUTING.md` — branch and pull request flow, and the two required checks.
+- `docs/play-listing.md` — screenshot script and copy for the Google Play listing.
+- `docs/data-safety.md` — data inventory for the Google Play Data Safety form.
+  Update it whenever the app starts collecting something new.
+- `tool/graphic/README.md` — how the 1024×500 feature graphic is generated.
 
-
-El estado del proyecto, el plan de monetización y el checklist para publicar están en
-`Creador Apps/Stocklet - Estado del proyecto.md`.
+Project status, the monetisation plan and the launch checklist live outside this
+repository, in `Creador Apps/Stocklet - Estado del proyecto.md`.

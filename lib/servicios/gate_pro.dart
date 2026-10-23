@@ -3,13 +3,13 @@ import 'package:provider/provider.dart';
 import '../datos_app.dart';
 import '../pantallas/paywall.dart';
 
-/// Compuerta de acceso a funciones Pro.
+/// Gate for access to Pro features.
 ///
-/// Si el usuario ya es Pro (o la monetización está inactiva → `esPro` = true),
-/// devuelve `true` de inmediato. Si no, abre el paywall y devuelve `true` solo
-/// si al volver el usuario ya es Pro (es decir, si compró).
+/// If the user is already Pro (or monetisation is inactive → `esPro` = true),
+/// returns `true` right away. Otherwise it opens the paywall and returns
+/// `true` only if the user is Pro on the way back (that is, if they bought).
 ///
-/// Uso típico:
+/// Typical use:
 ///   if (!await exigirPro(context) || !mounted) return;
 Future<bool> exigirPro(BuildContext context) async {
   if (context.read<DatosApp>().esPro) return true;

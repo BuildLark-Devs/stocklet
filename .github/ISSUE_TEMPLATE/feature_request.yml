@@ -1,0 +1,23 @@
+name: Feature request
+description: Something the app should be able to do and cannot.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What a business owner cannot do today, and what it costs them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What it could look like
+      description: Optional. A sketch of the flow, or how another app solves it.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: How you deal with it now, if at all.
