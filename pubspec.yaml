@@ -51,7 +51,7 @@ dependencies:
   firebase_analytics: ^12.0.0
   firebase_crashlytics: ^5.0.0
   purchases_flutter: ^9.2.0
-  image_picker: ^1.1.2
+  image_picker: ^1.2.4
   file_selector: ^1.0.3
   url_launcher: ^6.3.2
   pdf: ^3.12.0
