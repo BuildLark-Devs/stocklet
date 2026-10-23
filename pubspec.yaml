@@ -72,6 +72,13 @@ dev_dependencies:
 
 # App icon (Stocklet). Regenerate every size with:
 #   flutter pub get  &&  dart run flutter_launcher_icons
+#   node tool/icons/seal-maskable.js
+# The second step is NOT optional: the generator leaves the PWA maskable icons
+# with transparent corners and they have to be covered. See tool/icons/.
+#
+# stocklet_icon_fg.png is cropped to 540x540 on purpose: the drawing has to
+# fill its canvas, because Android applies a 16% inset on top of it. With the
+# 1024 canvas it shipped with, the logo came out at under half the size.
 flutter_launcher_icons:
   android: true
   ios: true
@@ -80,6 +87,13 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/icon/stocklet_icon_fg.png"
   remove_alpha_ios: true
   min_sdk_android: 21
+  # Sin este bloque, web/ se queda con los iconos de Flutter por defecto:
+  # el generador solo toca las plataformas que se listan aquí.
+  web:
+    generate: true
+    image_path: "assets/icon/stocklet_icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#0E9F6E"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

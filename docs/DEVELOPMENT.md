@@ -33,6 +33,28 @@ firebase deploy --only functions     # Cloud Functions
 firebase deploy --only hosting       # web/ (after flutter build web)
 ```
 
+## Icons
+
+The logo lives in `assets/icon/`. To regenerate every size:
+
+```
+dart run flutter_launcher_icons
+node tool/icons/seal-maskable.js
+```
+
+**The second command is not optional.** The generator builds the PWA
+`maskable` icons from the same image as the normal ones, and the logo has
+rounded corners: a maskable icon is cropped by the system to whatever shape it
+likes, so that transparency shows up as a hole. The script extends the edge
+colour out into the corners. It has to be run again every time, because the
+generator rewrites those two files.
+
+`stocklet_icon_fg.png` (the white drawing for the Android adaptive icon) is
+cropped to 540×540 on purpose: **the drawing has to fill its canvas**, because
+Android applies a 16% `inset` on top of it. Replace it with a version that has
+a wide margin around the artwork and the logo goes back to being tiny in the
+app drawer, with nothing to warn you.
+
 ## Cloud Functions
 
 Three functions in `functions/`: `inventarioBajo` (push when a supply crosses
