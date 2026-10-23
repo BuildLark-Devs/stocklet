@@ -20,7 +20,7 @@ const List<AcentoOpcion> acentos = [
 Color colorDeAcento(String id) =>
     acentos.firstWhere((a) => a.id == id, orElse: () => acentos.first).color;
 
-// --- Colores de marca, sensibles al tema (claro/oscuro) ---
+// --- Brand colours, theme aware (light/dark) ---
 @immutable
 class MarcaColores extends ThemeExtension<MarcaColores> {
   final Color verde; // acento
@@ -82,9 +82,9 @@ class MarcaColores extends ThemeExtension<MarcaColores> {
   }
 }
 
-// --- Tokens fijos (LIGHT) — se mantienen para no romper nada.
-// En el refactor por lotes, las pantallas migran de AppColores.xxx (fijo)
-// a AppColores.of(context).xxx (según el tema). Al final se podrán quitar. ---
+// --- Fixed tokens (LIGHT) — kept so nothing breaks.
+// In the batched refactor, screens move from AppColores.xxx (fixed) to
+// AppColores.of(context).xxx (theme aware). They can go once that is done. ---
 class AppColores {
   static const Color verde = Color(0xFF0E9F6E);
   static const Color verdeOscuro = Color(0xFF0A7D55);

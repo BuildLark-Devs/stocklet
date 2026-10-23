@@ -27,7 +27,7 @@ class _PanelResumenState extends State<PanelResumen> {
     final gastos = datos.gastosEnRango(_rango);
     final ganancia = ingresos - gastos;
 
-    // Etiquetas del selector de rango (traducidas).
+    // Labels for the range selector (translated).
     final opciones = {
       RangoTendencia.mes: t.rangoEsteMes,
       RangoTendencia.tres: t.rango3Meses,

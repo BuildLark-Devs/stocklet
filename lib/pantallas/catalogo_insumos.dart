@@ -8,8 +8,8 @@ import '../formato.dart';
 import '../unidades.dart';
 import '../datos_catalogo_insumos.dart';
 
-// Catálogo de referencia: ~65 insumos habituales de repostería. El precio
-// entra en cero; cada persona pone el suyo al editar el insumo.
+// Reference catalogue: ~65 common baking supplies. The price starts at zero;
+// each person sets their own when editing the supply.
 class PantallaCatalogoInsumos extends StatefulWidget {
   const PantallaCatalogoInsumos({super.key});
 

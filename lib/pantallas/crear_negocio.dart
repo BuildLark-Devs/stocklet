@@ -25,7 +25,7 @@ class _PantallaCrearNegocioState extends State<PantallaCrearNegocio> {
   String idioma = 'es';
   bool creando = false;
 
-  // Idiomas soportados (autónimos, no se traducen). Coincide con los .arb.
+  // Supported languages (autonyms, not translated). Matches the .arb files.
   static const idiomas = {
     'es': 'Español',
     'en': 'English',
@@ -33,7 +33,7 @@ class _PantallaCrearNegocioState extends State<PantallaCrearNegocio> {
     'fr': 'Français',
   };
 
-  // Moneda sugerida por país (los demás se eligen en el selector de moneda)
+  // Currency suggested per country (others are picked in the currency selector)
   static const monedaPorPais = {
     'CO': 'COP', 'MX': 'MXN', 'AR': 'ARS', 'PE': 'PEN', 'CL': 'CLP',
     'EC': 'USD', 'VE': 'VES', 'BO': 'BOB', 'PY': 'PYG', 'UY': 'UYU',
@@ -45,7 +45,7 @@ class _PantallaCrearNegocioState extends State<PantallaCrearNegocio> {
   @override
   void initState() {
     super.initState();
-    // Prefija el idioma con el que ya usa la app (si el usuario eligió uno).
+    // Prefills with the language the app is already in (if the user chose one).
     final actual = context.read<DatosApp>().idiomaId;
     if (actual != null && idiomas.containsKey(actual)) idioma = actual;
   }
@@ -109,7 +109,7 @@ class _PantallaCrearNegocioState extends State<PantallaCrearNegocio> {
       await datos.crearNegocio(
         nombre: nombre, pais: paisCodigo, moneda: moneda, idioma: idioma,
       );
-      // El idioma elegido al crear el negocio también cambia la interfaz.
+      // The language chosen when creating the business also changes the UI.
       await datos.setIdioma(idioma);
     } catch (e) {
       if (mounted) {
@@ -120,7 +120,7 @@ class _PantallaCrearNegocioState extends State<PantallaCrearNegocio> {
     }
   }
 
-  // Campo que parece input pero abre un selector al tocarlo
+  // A field that looks like an input but opens a picker on tap
   Widget _campoTap({
     required IconData icono,
     required String etiqueta,

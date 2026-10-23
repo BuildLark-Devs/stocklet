@@ -1,6 +1,6 @@
-// Unidades de compra y conversión a unidad base (g / ml / unidad).
-// Toda cantidad de compra se convierte a una unidad base para costear y
-// para el inventario. Ej: 1 kg -> 1000 g.
+// Purchase units and conversion to a base unit (g / ml / each).
+// Every purchased quantity is converted to a base unit for costing and for
+// inventory. E.g. 1 kg -> 1000 g.
 
 class UnidadDef {
   final String rot; // etiqueta visible
@@ -21,25 +21,25 @@ const Map<String, UnidadDef> kUnidades = {
   'doc': UnidadDef('docena', 'unidad', 12),
 };
 
-// Abreviatura de la unidad base (para mostrar costos y stock).
+// Base unit abbreviation (for showing costs and stock).
 const Map<String, String> kRotBase = {'g': 'g', 'ml': 'ml', 'unidad': 'u'};
 
 String baseDeUnidad(String u) => kUnidades[u]?.base ?? 'g';
 double factorDeUnidad(String u) => kUnidades[u]?.factor ?? 1;
 String rotBase(String base) => kRotBase[base] ?? base;
 
-/// Costo por unidad base a partir de una presentación de compra.
-/// Ej: $4.000 por 1 kg -> 4 por g.
+/// Cost per base unit from a purchase presentation.
+/// E.g. $4,000 for 1 kg -> 4 per g.
 double costoBaseDesde(double precio, double cantidadCompra, String unidadCompra) {
   final unidadesBase = cantidadCompra * factorDeUnidad(unidadCompra);
   return unidadesBase > 0 ? precio / unidadesBase : 0;
 }
 
-/// Cantidad en unidad base a partir de una presentación. Ej: 1 kg -> 1000 g.
+/// Quantity in the base unit from a presentation. E.g. 1 kg -> 1000 g.
 double cantidadBaseDesde(double cantidadCompra, String unidadCompra) =>
     cantidadCompra * factorDeUnidad(unidadCompra);
 
-// Categorías de insumo (se guardan como texto, igual que los tipos de producto).
+// Supply categories (stored as text, like the product types).
 const List<String> kCategoriasInsumo = [
   'Harinas y almidones',
   'Azúcares y sustitutos',

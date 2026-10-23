@@ -49,7 +49,7 @@ class _PantallaMiembrosState extends State<PantallaMiembros> {
   }
 
   Future<void> _generar() async {
-    // Función Pro: invitar equipo. Si no es Pro, abre el paywall.
+    // Pro feature: inviting a team. If not Pro, open the paywall.
     if (!await exigirPro(context) || !mounted) return;
     final t = AppLocalizations.of(context)!;
     final datos = context.read<DatosApp>();

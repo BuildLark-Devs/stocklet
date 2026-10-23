@@ -1,32 +1,33 @@
-// Siembra un negocio de demo en los EMULADORES de Firebase.
+// Seeds a demo business into the Firebase EMULATORS.
 //
-// Para qué: las capturas de la ficha de Google Play no pueden salir del negocio
-// real. Las pantallas de Stocklet muestran nombres y teléfonos de clientes,
-// ventas, costos y márgenes; una captura en Play es pública y permanente.
-// Con este script las capturas salen de datos inventados y, además, son
-// repetibles: si Play pide rehacerlas, se vuelve a sembrar y queda idéntico.
+// Why: Google Play listing screenshots cannot come from the real business.
+// Stocklet screens show customer names and phone numbers, sales, costs and
+// margins; a screenshot on Play is public and permanent. With this script the
+// screenshots come from invented data and, on top of that, are repeatable: if
+// Play asks for them again, seed again and the result is identical.
 //
-// Nunca toca producción: si no detecta los emuladores, se niega a correr.
+// It never touches production: if it does not find the emulators, it refuses
+// to run.
 //
-// Uso:
+// Usage:
 //   1. firebase emulators:start --only auth,firestore,storage --project mi-reposteria-app
-//   2. cd tool/demo && npm install && npm run sembrar
-//   3. flutter run --dart-define=STOCKLET_EMULADOR=true
-//   4. Entrar con las credenciales que imprime al final.
+//   2. cd tool/demo && npm install && npm run seed
+//   3. flutter run --dart-define=STOCKLET_EMULATOR=true
+//   4. Sign in with the credentials it prints at the end.
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
-// --- Guardia: solo emuladores ------------------------------------------------
+// --- Guard: emulators only ---------------------------------------------------
 //
-// El projectId TIENE que ser el mismo que usa la app (`firebase_options.dart`),
-// porque el emulador de Firestore separa los datos por proyecto: sembrar en uno
-// distinto deja a la app mirando una base vacía.
+// The projectId HAS to match the one the app uses (`firebase_options.dart`),
+// because the Firestore emulator partitions data by project: seeding into a
+// different one leaves the app looking at an empty database.
 //
-// Por eso la protección no puede ser el nombre del proyecto. Lo que de verdad
-// impide tocar producción es que las peticiones vayan al emulador, así que se
-// comprueba que esté escuchando antes de escribir nada.
+// So the project name cannot be the safeguard. What actually keeps production
+// out of reach is that the requests go to the emulator, so we check it is
+// listening before writing anything.
 const HOST_FIRESTORE =
   process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 const HOST_AUTH =
@@ -46,8 +47,8 @@ async function exigirEmuladores() {
       if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
     } catch (e) {
       console.error(
-        `\nNo encuentro el emulador de ${nombre} en ${host}.\n` +
-        'Este script solo siembra contra emuladores; sin ellos no escribe nada.\n\n' +
+        `\nCannot find the ${nombre} emulator at ${host}.\n` +
+        'This script only seeds against emulators; without them it writes nothing.\n\n' +
         '  firebase emulators:start --only auth,firestore,storage ' +
         `--project ${PROYECTO}\n`);
       process.exit(1);
@@ -59,8 +60,8 @@ initializeApp({ projectId: PROYECTO });
 const db = getFirestore();
 const auth = getAuth();
 
-// Credenciales del emulador. No sirven fuera de él: el emulador de Auth no
-// comparte usuarios con el proyecto real.
+// Emulator credentials. Useless outside it: the Auth emulator does not share
+// users with the real project.
 const CORREO = 'demo@stocklet.app';
 const CLAVE = 'demo1234';
 
@@ -77,9 +78,9 @@ const enDias = (n) => {
   return d;
 };
 
-// --- Insumos -----------------------------------------------------------------
-// costoPorUnidad va en unidad BASE (g / ml / unidad), como hace la app al
-// convertir la presentación de compra.
+// --- Supplies ----------------------------------------------------------------
+// costoPorUnidad is in the BASE unit (g / ml / each), the same conversion the
+// app does on the purchase presentation.
 const insumos = [
   ['harina', 'Harina de trigo', 'Harinas y almidones', 'g', 4.2, 12000, 3000, 'kg', 1, 4200, 'Distribuidora El Molino'],
   ['azucar', 'Azúcar', 'Azúcares y sustitutos', 'g', 3.8, 9000, 2000, 'kg', 1, 3800, 'Distribuidora El Molino'],
@@ -95,7 +96,7 @@ const insumos = [
   ['bolsa', 'Bolsa de galletas', 'Empaques', 'unidad', 250, 200, 60, 'unidad', 1, 250, 'Empaques Rionegro'],
 ];
 
-// --- Productos ---------------------------------------------------------------
+// --- Products ----------------------------------------------------------------
 const r = (insumoId, cantidad) => ({ insumoId, cantidad });
 
 const productos = [
@@ -142,8 +143,8 @@ const productos = [
     empaque: [r('bolsa', 1)],
   },
   {
-    // A propósito por debajo de su precio sugerido: así el panel de
-    // oportunidad y el semáforo de precios tienen algo que mostrar.
+    // Deliberately below its suggested price, so the opportunity panel and
+    // the price traffic light have something to show.
     id: 'cheesecake',
     nombre: 'Cheesecake de maracuyá',
     tipo: 'Tortas',
@@ -159,7 +160,7 @@ const productos = [
   },
 ];
 
-// --- Ventas: seis meses de historia, para que las gráficas tengan forma ------
+// --- Sales: six months of history, so the charts have a shape ---------------
 const catalogoVentas = [
   ['Torta de chocolate', 76000, 59515],
   ['Brownies', 5000, 2100],
@@ -177,10 +178,10 @@ function generarVentas() {
   for (let dia = 175; dia >= 0; dia -= 1) {
     const fecha = diasAtras(dia);
     const finDeSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
-    // Todos los días venden algo: un cero deja la gráfica de tendencia con un
-    // pico hacia abajo que parece un error de la app, no un día flojo. Y el
-    // volumen tiene que cubrir los gastos fijos del mes con holgura: un
-    // negocio de demo en pérdidas es una pésima primera captura de la ficha.
+    // They sell something every day: a zero leaves the trend chart with a
+    // downward spike that reads as an app bug rather than a slow day. And the
+    // volume has to cover the fixed expenses of the month comfortably: a demo
+    // business running at a loss is a terrible first screenshot.
     const cuantas = finDeSemana ? Math.floor(aleatorio() * 5) + 5
                                 : Math.floor(aleatorio() * 4) + 3;
     for (let i = 0; i < cuantas; i += 1) {
@@ -211,7 +212,7 @@ const gastos = [
   [48, 'Publicidad en redes', 'otros', 120000],
 ];
 
-// --- Pedidos -----------------------------------------------------------------
+// --- Orders ------------------------------------------------------------------
 const item = (nombre, cantidad, precio, costo, receta) => ({
   nombre, cantidad, precioUnitario: precio, costoUnitario: costo, receta,
 });
@@ -235,7 +236,7 @@ const pedidos = [
     ],
   },
   {
-    // Atrasado: dispara el aviso de pedidos pendientes en Inicio.
+    // Overdue: triggers the pending-orders notice on the Home screen.
     id: 'pedido-atrasado',
     cliente: { nombre: 'Andrés Gómez', telefono: '3004471290' },
     descripcion: '50x Galletas de vainilla',
@@ -264,7 +265,7 @@ const pedidos = [
   },
 ];
 
-// --- Cotizaciones ------------------------------------------------------------
+// --- Quotes ------------------------------------------------------------------
 const linea = (nombre, precio, cantidad, productoId) =>
   ({ nombre, precioUnitario: precio, cantidad, productoId: productoId ?? null });
 
@@ -287,7 +288,7 @@ const cotizaciones = [
     pedidoId: '',
   },
   {
-    // Aceptada y sin convertir: así se ve el botón de "crear pedido".
+    // Accepted and not yet converted, so the "create order" button shows.
     id: 'cotiza-aceptada',
     cliente: 'Empresa Nutresa',
     fecha: ts(diasAtras(1)),
@@ -306,24 +307,25 @@ const cotizaciones = [
   },
 ];
 
-// --- Equipo ------------------------------------------------------------------
-// Un negocio con un solo miembro no enseña los roles, que es justo lo que
-// separa a Stocklet de una libreta personal.
+// --- Team --------------------------------------------------------------------
+// A business with a single member does not show off the roles, which is
+// exactly what separates Stocklet from a personal notebook.
 const miembros = [
   ['socio-demo', 'Mariana Ochoa', 'socio', '3145567821'],
   ['empleado-demo', 'Julián Mesa', 'empleado', '3179923410'],
 ];
 
-// Invitación pendiente, para que se vea el mecanismo de códigos.
+// A pending invitation, so the invite-code mechanism is visible.
 const invitaciones = [
   ['K7M2QP', 'empleado', 'pendiente', ''],
 ];
 
-// --- Siembra -----------------------------------------------------------------
+// --- Seeding -----------------------------------------------------------------
 async function limpiar() {
   await db.recursiveDelete(db.collection('negocios').doc(NEGOCIO));
-  // usuarios e invitaciones son colecciones raíz: no las arrastra el borrado
-  // del negocio, y si no se limpian aquí el sembrado deja de ser repetible.
+  // usuarios and invitaciones are root collections: deleting the business does
+  // not take them with it, and without cleaning them here seeding stops being
+  // repeatable.
   for (const col of ['usuarios', 'invitaciones']) {
     const snap = await db.collection(col).get();
     await Promise.all(snap.docs.map((d) => d.ref.delete()));
@@ -333,7 +335,7 @@ async function limpiar() {
 async function crearUsuario() {
   try {
     await auth.deleteUser('demo-uid');
-  } catch { /* no existía */ }
+  } catch { /* did not exist */ }
   await auth.createUser({
     uid: 'demo-uid',
     email: CORREO,
@@ -343,9 +345,9 @@ async function crearUsuario() {
   return 'demo-uid';
 }
 
-async function sembrar() {
+async function seed() {
   await exigirEmuladores();
-  console.log(`Sembrando en el proyecto "${PROYECTO}" (emuladores)...`);
+  console.log(`Seeding project "${PROYECTO}" (emulators)...`);
   await limpiar();
   const uid = await crearUsuario();
 
@@ -446,22 +448,22 @@ async function sembrar() {
   }
 
   console.log(`
-Listo. Negocio de demo "Postres Aurora":
-  ${insumos.length} insumos (chocolate por debajo del mínimo, a propósito)
-  ${productos.length} productos con receta (el cheesecake, mal cobrado a propósito)
-  ${ventas.length} ventas en seis meses
-  ${gastos.length} gastos, ${pedidos.length} pedidos, ${cotizaciones.length} cotizaciones
-  equipo: dueña + ${miembros.length} miembros y ${invitaciones.length} invitación pendiente
+Done. Demo business "Postres Aurora":
+  ${insumos.length} supplies (chocolate below its minimum, on purpose)
+  ${productos.length} products with a recipe (the cheesecake underpriced, on purpose)
+  ${ventas.length} sales across six months
+  ${gastos.length} expenses, ${pedidos.length} orders, ${cotizaciones.length} quotes
+  team: owner + ${miembros.length} members and ${invitaciones.length} pending invitation
 
-Entra en la app con:
-  correo: ${CORREO}
-  clave:  ${CLAVE}
+Sign in to the app with:
+  email:    ${CORREO}
+  password: ${CLAVE}
 
-  flutter run --dart-define=STOCKLET_EMULADOR=true
+  flutter run --dart-define=STOCKLET_EMULATOR=true
 `);
 }
 
-sembrar().catch((e) => {
+seed().catch((e) => {
   console.error(e);
   process.exit(1);
 });

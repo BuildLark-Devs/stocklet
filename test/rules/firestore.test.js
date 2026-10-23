@@ -1,13 +1,13 @@
-// Pruebas de las reglas de seguridad de Firestore (../../firestore.rules).
+// Tests for the Firestore security rules (../../firestore.rules).
 //
-// Se ejecutan contra el emulador:
+// They run against the emulator:
 //   cd test/rules && npm test
 //
-// Lo que se busca demostrar, en orden de gravedad:
-//   1. Un negocio no ve ni toca los datos de otro.
-//   2. Nadie se sube el rol ni se cambia de negocio por su cuenta.
-//   3. El empleado puede trabajar (vender descuenta inventario) sin poder
-//      editar el catálogo ni borrar historial.
+// What they set out to prove, in order of severity:
+//   1. One business neither sees nor touches another business's data.
+//   2. Nobody raises their own role or moves themselves between businesses.
+//   3. The employee can work (selling deducts stock) without being able to
+//      edit the catalogue or delete history.
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -25,9 +25,9 @@ const [host, puerto] = (process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080')
 
 let env;
 
-// --- Datos de partida -------------------------------------------------------
-// Dos negocios independientes, con su gente. negB existe para probar que negA
-// no lo alcanza.
+// --- Fixtures ---------------------------------------------------------------
+// Two independent businesses, with their people. negB exists to prove that
+// negA cannot reach it.
 
 const HARINA = {
   nombre: 'Harina',
@@ -43,7 +43,7 @@ const HARINA = {
   especial: false,
 };
 
-async function sembrar() {
+async function seed() {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'negocios/negA'), {
@@ -79,8 +79,8 @@ before(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-stocklet',
     firestore: {
-      // STOCKLET_RULES permite correr la misma suite contra otro archivo de
-      // reglas (por ejemplo, las que hay desplegadas hoy) para compararlas.
+      // STOCKLET_RULES allows running the same suite against a different rules
+      // file (for example the one deployed today) to compare them.
       rules: readFileSync(
         process.env.STOCKLET_RULES ?? resolve(aqui, '../../firestore.rules'), 'utf8'),
       host,
@@ -93,40 +93,40 @@ after(async () => { await env?.cleanup(); });
 
 beforeEach(async () => {
   await env.clearFirestore();
-  await sembrar();
+  await seed();
 });
 
-// --- 1. Aislamiento entre negocios -----------------------------------------
+// --- 1. Isolation between businesses ---------------------------------------
 
-test('sin sesión no se lee nada', async () => {
+test('without a session nothing is readable', async () => {
   await assertFails(getDoc(doc(sinSesion(), 'negocios/negA')));
   await assertFails(getDoc(doc(sinSesion(), 'negocios/negA/insumos/harina')));
 });
 
-test('el dueño de otro negocio no lee el negocio ajeno', async () => {
+test('another business owner cannot read the other business', async () => {
   await assertFails(getDoc(doc(como('duenoB'), 'negocios/negA')));
 });
 
-test('el dueño de otro negocio no lee los insumos ajenos', async () => {
+test('another business owner cannot read the other supplies', async () => {
   await assertFails(getDoc(doc(como('duenoB'), 'negocios/negA/insumos/harina')));
 });
 
-test('el dueño de otro negocio no lee las ventas ajenas', async () => {
+test('another business owner cannot read the other sales', async () => {
   await assertFails(getDocs(collection(como('duenoB'), 'negocios/negA/ventas')));
 });
 
-test('el dueño de otro negocio no escribe en el negocio ajeno', async () => {
+test('another business owner cannot write to the other business', async () => {
   await assertFails(setDoc(doc(como('duenoB'), 'negocios/negA/insumos/harina'), HARINA));
 });
 
-test('un usuario sin ficha no alcanza nada', async () => {
+test('a user with no record reaches nothing', async () => {
   await assertFails(getDoc(doc(como('fantasma'), 'negocios/negA')));
   await assertFails(getDoc(doc(como('fantasma'), 'negocios/negA/insumos/harina')));
 });
 
-test('un usuario con ficha pero sin negocio no alcanza nada', async () => {
-  // El caso límite: negocioId ausente se lee como '' y no debe emparejar con
-  // ningún documento, ni siquiera con otro que tenga el campo vacío.
+test('a user with a record but no business reaches nothing', async () => {
+  // The edge case: a missing negocioId reads as '' and must not match any
+  // document, not even another one whose field is also empty.
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'usuarios/huerfano'), { nombre: 'Sin negocio' });
   });
@@ -135,210 +135,210 @@ test('un usuario con ficha pero sin negocio no alcanza nada', async () => {
   await assertFails(getDoc(doc(como('huerfano'), 'usuarios/empleadoA')));
 });
 
-test('un miembro sí lee lo suyo', async () => {
+test('a member does read their own', async () => {
   await assertSucceeds(getDoc(doc(como('empleadoA'), 'negocios/negA')));
   await assertSucceeds(getDoc(doc(como('empleadoA'), 'negocios/negA/insumos/harina')));
 });
 
-// --- 2. Nadie se asciende solo ---------------------------------------------
+// --- 2. Nobody promotes themselves -----------------------------------------
 
-test('un empleado no puede subirse el rol a dueño', async () => {
+test('an employee cannot raise their role to owner', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'usuarios/empleadoA'),
     { negocioId: 'negA', rol: 'dueno', nombre: 'Eli' }));
 });
 
-test('un empleado no puede subirse el rol a socio', async () => {
+test('an employee cannot raise their role to partner', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'usuarios/empleadoA'),
     { negocioId: 'negA', rol: 'socio', nombre: 'Eli' }));
 });
 
-test('un empleado no puede mudarse a otro negocio por su cuenta', async () => {
+test('an employee cannot move themselves to another business', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'usuarios/empleadoA'),
     { negocioId: 'negB', rol: 'empleado', nombre: 'Eli' }));
 });
 
-test('un empleado sí puede editar sus datos personales', async () => {
+test('an employee can edit their own personal data', async () => {
   await assertSucceeds(setDoc(doc(como('empleadoA'), 'usuarios/empleadoA'),
     { negocioId: 'negA', rol: 'empleado', nombre: 'Eli Nuevo', celular: '3110000000' }));
 });
 
-test('nadie edita la ficha de un miembro de otro negocio', async () => {
+test('nobody edits the record of another business\'s member', async () => {
   await assertFails(setDoc(doc(como('duenoB'), 'usuarios/empleadoA'),
     { negocioId: 'negA', rol: 'empleado', nombre: 'Hackeado' }, { merge: true }));
 });
 
-// --- 3. El dueño gestiona su gente, con límites ------------------------------
+// --- 3. The owner manages their people, within limits -----------------------
 
-test('el dueño cambia el rol de un miembro', async () => {
+test('the owner changes a member role', async () => {
   await assertSucceeds(setDoc(doc(como('duenoA'), 'usuarios/empleadoA'),
     { rol: 'socio' }, { merge: true }));
 });
 
-test('el dueño no puede fabricar otro dueño', async () => {
+test('the owner cannot manufacture another owner', async () => {
   await assertFails(setDoc(doc(como('duenoA'), 'usuarios/empleadoA'),
     { rol: 'dueno' }, { merge: true }));
 });
 
-test('el dueño no puede mover a un miembro a otro negocio', async () => {
+test('the owner cannot move a member to another business', async () => {
   await assertFails(setDoc(doc(como('duenoA'), 'usuarios/empleadoA'),
     { negocioId: 'negB' }, { merge: true }));
 });
 
-test('el dueño saca a un miembro de su negocio', async () => {
+test('the owner removes a member from their business', async () => {
   await assertSucceeds(deleteDoc(doc(como('duenoA'), 'usuarios/empleadoA')));
 });
 
-test('un empleado no saca a otro miembro', async () => {
+test('an employee cannot remove another member', async () => {
   await assertFails(deleteDoc(doc(como('empleadoA'), 'usuarios/socioA')));
 });
 
-// --- 4. El empleado trabaja, pero no manda -----------------------------------
+// --- 4. The employee works, but does not rule -------------------------------
 
-test('el empleado descuenta inventario al vender', async () => {
-  // La app guarda el insumo completo; lo único que cambia es el stock.
+test('the employee deducts stock when selling', async () => {
+  // The app saves the whole supply document; the only thing that changes is stock.
   await assertSucceeds(setDoc(doc(como('empleadoA'), 'negocios/negA/insumos/harina'),
     { ...HARINA, stockActual: 750 }));
 });
 
-test('el empleado no puede cambiarle el precio a un insumo', async () => {
+test('the employee cannot change a supply price', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negA/insumos/harina'),
     { ...HARINA, costoPorUnidad: 1 }));
 });
 
-test('el empleado no puede renombrar un insumo mientras descuenta stock', async () => {
+test('the employee cannot rename a supply while deducting stock', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negA/insumos/harina'),
     { ...HARINA, nombre: 'Otra cosa', stockActual: 750 }));
 });
 
-test('el empleado no crea ni borra insumos', async () => {
+test('the employee neither creates nor deletes supplies', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negA/insumos/nuevo'), HARINA));
   await assertFails(deleteDoc(doc(como('empleadoA'), 'negocios/negA/insumos/harina')));
 });
 
-test('el socio sí gestiona el catálogo', async () => {
+test('the partner does manage the catalogue', async () => {
   await assertSucceeds(setDoc(doc(como('socioA'), 'negocios/negA/insumos/harina'),
     { ...HARINA, costoPorUnidad: 7 }));
   await assertSucceeds(setDoc(doc(como('socioA'), 'negocios/negA/productos/torta'),
     { nombre: 'Torta grande', precio: 70000 }));
 });
 
-test('el empleado no toca los productos', async () => {
+test('the employee does not touch products', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negA/productos/torta'),
     { nombre: 'Torta', precio: 1 }));
 });
 
-test('el empleado registra una venta pero no la borra', async () => {
+test('the employee records a sale but cannot delete it', async () => {
   await assertSucceeds(setDoc(doc(como('empleadoA'), 'negocios/negA/ventas/v2'),
     { descripcion: 'Torta', cantidad: 1 }));
   await assertFails(deleteDoc(doc(como('empleadoA'), 'negocios/negA/ventas/v1')));
 });
 
-// Cotizar es trabajo de cualquier miembro; los catálogos son solo de lectura
-// para el empleado. Decisión explícita del dueño del producto (2026-09-17).
+// Quoting is any member's job; catalogues are read-only for the employee.
+// An explicit product-owner decision (2026-09-17).
 
-test('el empleado cotiza: la crea y la corrige', async () => {
+test('the employee quotes: creates and corrects one', async () => {
   await assertSucceeds(setDoc(doc(como('empleadoA'), 'negocios/negA/cotizaciones/c2'),
     { cliente: 'Nuevo cliente', descuento: 0 }));
   await assertSucceeds(setDoc(doc(como('empleadoA'), 'negocios/negA/cotizaciones/c1'),
     { cliente: 'Cliente', descuento: 5000 }));
 });
 
-test('el empleado no borra cotizaciones', async () => {
+test('the employee does not delete quotes', async () => {
   await assertFails(deleteDoc(doc(como('empleadoA'), 'negocios/negA/cotizaciones/c1')));
 });
 
-test('el socio sí borra cotizaciones', async () => {
+test('the partner does delete quotes', async () => {
   await assertSucceeds(deleteDoc(doc(como('socioA'), 'negocios/negA/cotizaciones/c1')));
 });
 
-test('el empleado no cotiza para otro negocio', async () => {
+test('the employee cannot quote for another business', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negB/cotizaciones/c9'),
     { cliente: 'Ajeno', descuento: 0 }));
 });
 
-test('el empleado consulta los catálogos pero no los sube ni los borra', async () => {
+test('the employee reads catalogues but neither uploads nor deletes them', async () => {
   await assertSucceeds(getDoc(doc(como('empleadoA'), 'negocios/negA/catalogos/cat1')));
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negA/catalogos/cat2'),
     { nombre: 'Mío', url: 'x', path: 'y' }));
   await assertFails(deleteDoc(doc(como('empleadoA'), 'negocios/negA/catalogos/cat1')));
 });
 
-test('el socio sí sube catálogos', async () => {
+test('the partner does upload catalogues', async () => {
   await assertSucceeds(setDoc(doc(como('socioA'), 'negocios/negA/catalogos/cat2'),
     { nombre: 'Nuevo', url: 'x', path: 'y' }));
 });
 
-test('el socio sí corrige el historial', async () => {
+test('the partner does correct history', async () => {
   await assertSucceeds(deleteDoc(doc(como('socioA'), 'negocios/negA/ventas/v1')));
 });
 
-// --- 5. Negocio y ajustes ----------------------------------------------------
+// --- 5. Business and settings -----------------------------------------------
 
-test('cualquiera crea su propio negocio, pero no a nombre de otro', async () => {
+test('anyone creates their own business, but not in someone else\'s name', async () => {
   const base = { nombre: 'Nuevo', pais: 'CO', moneda: 'COP', idioma: 'es' };
   await assertSucceeds(setDoc(doc(como('nuevo'), 'negocios/negC'), { ...base, duenoUid: 'nuevo' }));
   await assertFails(setDoc(doc(como('nuevo'), 'negocios/negD'), { ...base, duenoUid: 'duenoA' }));
 });
 
-test('el empleado no cambia los ajustes del negocio', async () => {
+test('the employee does not change business settings', async () => {
   await assertFails(setDoc(doc(como('empleadoA'), 'negocios/negA'),
     { moneda: 'USD' }, { merge: true }));
 });
 
-test('el dueño no puede regalarle el negocio a otro desde el cliente', async () => {
+test('the owner cannot hand the business to someone else from the client', async () => {
   await assertFails(setDoc(doc(como('duenoA'), 'negocios/negA'),
     { duenoUid: 'duenoB' }, { merge: true }));
 });
 
-test('nadie borra el negocio desde el cliente', async () => {
+test('nobody deletes the business from the client', async () => {
   await assertFails(deleteDoc(doc(como('duenoA'), 'negocios/negA')));
 });
 
-// --- 6. Invitaciones ---------------------------------------------------------
+// --- 6. Invitations ---------------------------------------------------------
 
-test('el dueño lista las invitaciones de su negocio', async () => {
+test('the owner lists their business invitations', async () => {
   const q = query(collection(como('duenoA'), 'invitaciones'), where('negocioId', '==', 'negA'));
   await assertSucceeds(getDocs(q));
 });
 
-test('nadie lista las invitaciones de otro negocio', async () => {
+test('nobody lists another business invitations', async () => {
   const q = query(collection(como('duenoB'), 'invitaciones'), where('negocioId', '==', 'negA'));
   await assertFails(getDocs(q));
 });
 
-test('el empleado no lista las invitaciones de su propio negocio', async () => {
+test('the employee does not list their own business invitations', async () => {
   const q = query(collection(como('empleadoA'), 'invitaciones'), where('negocioId', '==', 'negA'));
   await assertFails(getDocs(q));
 });
 
-test('el dueño no puede invitar a otro negocio', async () => {
+test('the owner cannot invite into another business', async () => {
   await assertFails(setDoc(doc(como('duenoA'), 'invitaciones/XXX999'), {
     negocioId: 'negB', rol: 'empleado', estado: 'pendiente',
     creadoPor: 'duenoA', usadaPor: '',
   }));
 });
 
-test('el dueño no puede invitar a alguien como dueño', async () => {
+test('the owner cannot invite someone as owner', async () => {
   await assertFails(setDoc(doc(como('duenoA'), 'invitaciones/XXX998'), {
     negocioId: 'negA', rol: 'dueno', estado: 'pendiente',
     creadoPor: 'duenoA', usadaPor: '',
   }));
 });
 
-test('canjear una invitación y entrar al negocio', async () => {
+test('redeem an invitation and join the business', async () => {
   const db = como('recienLlegado');
-  // 1) Reclamar el código.
+  // 1) Claim the code.
   await assertSucceeds(setDoc(doc(db, 'invitaciones/ABC123'), {
     negocioId: 'negA', rol: 'empleado', estado: 'usada',
     creadoPor: 'duenoA', usadaPor: 'recienLlegado',
   }));
-  // 2) Crear la ficha con lo que dice la invitación.
+  // 2) Create the user record with what the invitation says.
   await assertSucceeds(setDoc(doc(db, 'usuarios/recienLlegado'), {
     negocioId: 'negA', rol: 'empleado', invitacionCodigo: 'ABC123',
   }));
 });
 
-test('no se puede entrar con una invitación reclamada por otro', async () => {
+test('cannot join with an invitation claimed by someone else', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'invitaciones/ABC123'), {
       negocioId: 'negA', rol: 'empleado', estado: 'usada',
@@ -350,7 +350,7 @@ test('no se puede entrar con una invitación reclamada por otro', async () => {
   }));
 });
 
-test('canjear una invitación no permite elegirse el rol', async () => {
+test('redeeming an invitation does not let you pick your role', async () => {
   const db = como('ambicioso');
   await setDoc(doc(db, 'invitaciones/ABC123'), {
     negocioId: 'negA', rol: 'empleado', estado: 'usada',
@@ -361,13 +361,13 @@ test('canjear una invitación no permite elegirse el rol', async () => {
   }));
 });
 
-test('sin invitación no se entra a un negocio ajeno', async () => {
+test('without an invitation you do not join another business', async () => {
   await assertFails(setDoc(doc(como('colado'), 'usuarios/colado'), {
     negocioId: 'negA', rol: 'empleado',
   }));
 });
 
-test('una invitación ya usada no se vuelve a canjear', async () => {
+test('an already-used invitation cannot be redeemed again', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'invitaciones/ABC123'), {
       negocioId: 'negA', rol: 'empleado', estado: 'usada',

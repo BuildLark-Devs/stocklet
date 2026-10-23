@@ -4,7 +4,7 @@ import 'package:reposteria_app/l10n/app_localizations.dart';
 import '../datos_app.dart';
 import '../tema.dart';
 
-// Pantalla para que un invitado se una a un negocio con un código.
+// Screen where a guest joins a business with a code.
 class PantallaUnirseCodigo extends StatefulWidget {
   const PantallaUnirseCodigo({super.key});
 
@@ -50,7 +50,7 @@ class _PantallaUnirseCodigoState extends State<PantallaUnirseCodigo> {
     final error = await datos.unirsePorCodigo(codigo);
     if (!mounted) return;
     if (error == null) {
-      // La Compuerta ya rebuildeó a la app; cerramos esta pantalla.
+      // Compuerta has already rebuilt the app; close this screen.
       Navigator.pop(context);
     } else {
       setState(() => _uniendo = false);

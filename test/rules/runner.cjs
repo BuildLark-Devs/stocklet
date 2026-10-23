@@ -1,10 +1,9 @@
-// Puente CommonJS -> ESM.
+// CommonJS -> ESM bridge.
 //
-// `firebase emulators:exec` corre el script con el Node empaquetado del CLI,
-// que hace require() del archivo de entrada y por tanto no acepta ni ESM ni el
-// flag --test. Este archivo es el entry CommonJS que importa la suite ESM; el
-// runner de node:test se encarga solo de ejecutar y de fijar el código de
-// salida si algo falla.
+// `firebase emulators:exec` runs the script with the CLI bundled Node, which
+// require()s the entry file and therefore accepts neither ESM nor the --test
+// flag. This file is the CommonJS entry that imports the ESM suite; the
+// node:test runner handles execution and sets the exit code on failure.
 
 import('./firestore.test.js').catch((err) => {
   console.error(err);

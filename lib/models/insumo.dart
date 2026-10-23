@@ -4,14 +4,14 @@ class Insumo {
   String id;
   String nombre;
   String categoria;
-  // Unidad BASE del insumo: 'g' | 'ml' | 'unidad'. El costo y el stock están
-  // expresados en esta unidad. Se deriva de la unidad de compra.
+  // BASE unit of the supply: 'g' | 'ml' | 'unidad'. Cost and stock are both
+  // expressed in this unit. Derived from the purchase unit.
   String unidad;
   double costoPorUnidad; // costo por unidad base (fuente de cálculo)
   double stockActual; // en unidad base
   double stockMinimo; // en unidad base
 
-  // Presentación de compra (para mostrar y reeditar). Ej: 1 kg a $4.000.
+  // Purchase presentation (for display and re-editing). E.g. 1 kg at $4,000.
   String unidadCompra;
   double cantidadCompra;
   double precioPresentacion;
@@ -37,8 +37,8 @@ class Insumo {
         precioPresentacion = precioPresentacion ?? costoPorUnidad,
         id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
-  /// Crea un insumo a partir de una presentación de compra, convirtiendo a
-  /// unidad base. Ej: 1 kg a $4.000 -> unidad 'g', costo 4/g, stock 1000 g.
+  /// Builds a supply from a purchase presentation, converting to the base
+  /// unit. E.g. 1 kg at $4,000 -> unit 'g', cost 4/g, stock 1000 g.
   factory Insumo.desdePresentacion({
     String? id,
     required String nombre,
@@ -70,7 +70,7 @@ class Insumo {
     );
   }
 
-  // ¿Está por debajo de su mínimo? (0 = sin mínimo, no avisa)
+  // Below its minimum? (0 = no minimum, no warning)
   bool get bajoMinimo => stockMinimo > 0 && stockActual < stockMinimo;
 
   String get rotUnidadBase => rotBase(unidad);
@@ -102,7 +102,7 @@ class Insumo {
       costoPorUnidad: costo,
       stockActual: (map['stockActual'] as num?)?.toDouble() ?? 0,
       stockMinimo: (map['stockMinimo'] as num?)?.toDouble() ?? 0,
-      // Compat: insumos viejos no traen presentación -> se asume 1 unidad base.
+      // Compat: old supplies carry no presentation -> assume 1 base unit.
       unidadCompra: map['unidadCompra'] as String? ?? unidad,
       cantidadCompra: (map['cantidadCompra'] as num?)?.toDouble() ?? 1,
       precioPresentacion:

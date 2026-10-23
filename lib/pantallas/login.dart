@@ -25,7 +25,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
     _cargarCorreoRecordado();
   }
 
-  // Al abrir el login, trae el último correo guardado (si lo hay)
+  // On opening the login screen, pull the last saved email (if any)
   Future<void> _cargarCorreoRecordado() async {
     final prefs = await SharedPreferences.getInstance();
     final recordarGuardado = prefs.getBool('recordarCorreo') ?? true;
@@ -62,7 +62,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
         email: correo,
         password: password,
       );
-      // Guarda (o borra) el correo recordado según el marcador
+      // Save (or clear) the remembered email according to the checkbox
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('recordarCorreo', recordar);
       if (recordar) {
@@ -70,7 +70,7 @@ class _PantallaLoginState extends State<PantallaLogin> {
       } else {
         await prefs.remove('correoRecordado');
       }
-      // la compuerta se encarga de llevar a la app
+      // the gate takes care of getting into the app
     } on FirebaseAuthException catch (e) {
       String msg = t.loginErrorGeneral;
       if (e.code == 'invalid-email') msg = t.errorCorreoInvalido;
@@ -134,8 +134,8 @@ class _PantallaLoginState extends State<PantallaLogin> {
             .showSnackBar(SnackBar(content: Text(t.errorCorreoInvalido)));
         return;
       }
-      // Otros casos (p. ej. user-not-found): por seguridad no revelamos si el
-      // correo existe; mostramos el mensaje genérico de abajo.
+      // Other cases (user-not-found, say): for safety we do not reveal whether
+      // the email exists; the generic message below is shown instead.
     } catch (_) {}
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

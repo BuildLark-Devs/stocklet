@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Estados posibles (claves; se traducen en la UI).
+// Possible states (keys; translated in the UI).
 const List<String> kEstadosCotizacion = [
   'borrador',
   'enviada',
@@ -65,8 +65,8 @@ class Cotizacion {
   bool aplicaIva;
   double tasaIva;
   String notas;
-  /// Id del pedido que generó esta cotización. Vacío = aún no convertida.
-  /// Una vez asignado no se vacía: es lo que impide crear dos pedidos.
+  /// Id of the order this quote generated. Empty = not converted yet.
+  /// Once set it is never cleared: that is what prevents two orders.
   String pedidoId;
 
   Cotizacion({
@@ -95,8 +95,8 @@ class Cotizacion {
   double get iva => aplicaIva ? base * tasaIva / 100 : 0;
   double get total => base + iva;
 
-  /// `true` si ya generó un pedido. Es lo que consultan las pantallas para
-  /// decidir si ofrecen convertirla.
+  /// `true` if it already generated an order. This is what the screens read
+  /// to decide whether to offer converting it.
   bool get convertida => pedidoId.isNotEmpty;
 
   Map<String, dynamic> toMap() => {
@@ -140,7 +140,7 @@ class Cotizacion {
       aplicaIva: (map['aplicaIva'] as bool?) ?? false,
       tasaIva: (map['tasaIva'] as num?)?.toDouble() ?? 19,
       notas: (map['notas'] as String?) ?? '',
-      // Ausente = cotización anterior a esta funcionalidad: no convertida.
+      // Missing = a quote from before this feature existed: not converted.
       pedidoId: (map['pedidoId'] as String?) ?? '',
     );
   }

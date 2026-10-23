@@ -97,7 +97,7 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
                   ),
                   const SizedBox(height: 32),
 
-                  // --- Tarjeta con los campos ---
+                  // --- Card holding the fields ---
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(20),

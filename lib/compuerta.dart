@@ -26,8 +26,8 @@ class Compuerta extends StatelessWidget {
   }
 }
 
-// Pantalla de carga: el ícono de Stocklet como fondo tenue a pantalla completa,
-// con el ícono nítido, el mensaje "Cargando tu negocio" y un indicador.
+// Loading screen: the Stocklet icon as a faint full-screen backdrop, with the
+// sharp icon, the "Loading your business" message and a spinner.
 class _PantallaCargando extends StatelessWidget {
   const _PantallaCargando();
 
@@ -38,7 +38,7 @@ class _PantallaCargando extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // Ícono de fondo a pantalla completa, muy tenue.
+          // Full-screen backdrop icon, very faint.
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,

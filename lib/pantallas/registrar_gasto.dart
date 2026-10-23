@@ -25,7 +25,7 @@ class _PantallaRegistrarGastoState extends State<PantallaRegistrarGasto> {
   final montoCtrl = TextEditingController();
   CategoriaGasto categoria = CategoriaGasto.insumos;
 
-  // Compra de insumos
+  // Buying supplies
   final compraDescCtrl = TextEditingController();
   final List<LineaCompraInsumo> lineas = [];
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:reposteria_app/l10n/app_localizations.dart';
 import '../tema.dart';
 
-// Devuelve el tipo elegido ('' = sin tipo, o un nombre nuevo/existente),
-// o null si se cancela.
+// Returns the chosen type ('' = no type, or a new/existing name), or null if
+// cancelled.
 Future<String?> elegirTipo(BuildContext context, List<String> tipos) {
   return showDialog<String>(
     context: context,

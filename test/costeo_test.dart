@@ -1,8 +1,8 @@
-// Motor de costeo: de la receta al precio sugerido.
+// The costing engine: from recipe to suggested price.
 //
-// Los números que salen de aquí son el argumento de venta de Stocklet. Cada
-// prueba fija una regla del cálculo con cifras a mano, para que una
-// refactorización no cambie en silencio lo que el negocio cobra.
+// The numbers that come out of here are Stocklet selling point. Each test
+// pins one rule of the calculation down with hand-worked figures, so a
+// refactor cannot quietly change what the business charges.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reposteria_app/costeo.dart';
@@ -10,7 +10,7 @@ import 'package:reposteria_app/models/insumo.dart';
 import 'package:reposteria_app/models/ingrediente_de_receta.dart';
 import 'package:reposteria_app/models/producto.dart';
 
-// Un insumo que cuesta `costo` por unidad base.
+// A supply costing `costo` per base unit.
 Insumo insumo(String nombre, double costo) => Insumo(
       id: nombre,
       nombre: nombre,
@@ -52,8 +52,8 @@ Producto producto({
     );
 
 void main() {
-  group('materia prima y rendimiento', () {
-    test('la materia prima es la suma de la receta del lote', () {
+  group('raw materials and yield', () {
+    test('raw materials are the sum of the batch recipe', () {
       final r = costear(
         producto(receta: [ing(10, 100), ing(5, 200)]),
         const ConfigCosteo(),
@@ -61,13 +61,13 @@ void main() {
       expect(r.materiaPrima, 2000); // 10*100 + 5*200
     });
 
-    test('el rendimiento reparte el lote entre las unidades', () {
+    test('the yield splits the batch across the units', () {
       final r = costear(producto(rendimiento: 10), const ConfigCosteo());
       expect(r.materiaPrima, 1000);
       expect(r.materiaUnidad, 100);
     });
 
-    test('un rendimiento inválido se trata como 1', () {
+    test('an invalid yield is treated as 1', () {
       for (final rend in [0.0, -5.0, 0.5]) {
         final r = costear(producto(rendimiento: rend), const ConfigCosteo());
         expect(r.materiaUnidad, 1000, reason: 'rendimiento $rend');
@@ -75,53 +75,53 @@ void main() {
     });
   });
 
-  group('merma', () {
-    test('la merma encarece por división, no por suma', () {
-      // Perder el 10% no encarece un 10%, sino un 11,1%: lo que queda útil es
-      // el 90% de lo comprado.
+  group('waste', () {
+    test('waste raises the cost by division, not by addition', () {
+      // Losing 10% does not add 10% but 11.1%: what stays usable is 90% of
+      // what was bought.
       final r = costear(producto(mermaPct: 10), const ConfigCosteo());
       expect(r.conMerma, closeTo(1111.11, 0.01));
     });
 
-    test('sin merma no cambia nada', () {
+    test('with no waste nothing changes', () {
       final r = costear(producto(mermaPct: 0), const ConfigCosteo());
       expect(r.conMerma, 1000);
     });
 
-    test('la merma se limita al 95% para no dividir por cero', () {
+    test('waste is capped at 95% so we never divide by zero', () {
       final r = costear(producto(mermaPct: 100), const ConfigCosteo());
-      // 1000 / 0.05. Va con tolerancia porque 1 - 95/100 no es exactamente
-      // 0.05 en coma flotante.
+      // 1000 / 0.05. With a tolerance, because 1 - 95/100 is not exactly
+      // 0.05 in floating point.
       expect(r.conMerma, closeTo(20000, 0.01));
       expect(r.conMerma.isFinite, isTrue);
     });
 
-    test('una merma negativa se trata como cero', () {
+    test('negative waste is treated as zero', () {
       final r = costear(producto(mermaPct: -10), const ConfigCosteo());
       expect(r.conMerma, 1000);
     });
   });
 
-  group('empaque, mano de obra y energía', () {
-    test('el empaque es por unidad, no por lote', () {
+  group('packaging, labour and energy', () {
+    test('packaging is per unit, not per batch', () {
       final r = costear(
         producto(empaque: [ing(50, 1)], rendimiento: 10),
         const ConfigCosteo(),
       );
-      // El empaque no se divide entre el rendimiento.
+      // Packaging is not divided by the yield.
       expect(r.empaqueUnidad, 50);
     });
 
-    test('la mano de obra se prorratea por hora y por unidad', () {
+    test('labour is prorated by hour and by unit', () {
       final r = costear(
         producto(minutosPrep: 30, rendimiento: 10),
         const ConfigCosteo(tarifaHora: 20000),
       );
-      // Media hora a $20.000 = $10.000 el lote, entre 10 unidades.
+      // Half an hour at $20,000 = $10,000 per batch, across 10 units.
       expect(r.manoObraUnidad, 1000);
     });
 
-    test('la energía se prorratea igual que la mano de obra', () {
+    test('energy is prorated the same way as labour', () {
       final r = costear(
         producto(minutosHorno: 60, rendimiento: 4),
         const ConfigCosteo(costoEnergiaHora: 2000),
@@ -130,23 +130,23 @@ void main() {
     });
   });
 
-  group('gastos fijos: se reparten por lote, no por unidad', () {
-    // $1.000.000 al mes entre 20 lotes = $50.000 que carga cada preparación.
+  group('fixed costs: split per batch, not per unit', () {
+    // $1,000,000 a month across 20 batches = $50,000 per preparation.
     const cfg = ConfigCosteo(gastosMes: 1000000, lotesMes: 20);
 
-    test('un lote de una unidad carga el lote entero', () {
-      // Una torta ocupa el horno y el turno igual que cualquier otro lote.
+    test('a batch of one unit carries the whole batch', () {
+      // A cake occupies oven and shift just like any other batch.
       final r = costear(producto(rendimiento: 1), cfg);
       expect(r.fijosUnidad, 50000);
     });
 
-    test('un lote de 50 carga lo mismo, repartido entre las 50', () {
+    test('a batch of 50 carries the same, split across the 50', () {
       final r = costear(producto(rendimiento: 50), cfg);
       expect(r.fijosUnidad, 1000); // 50000 / 50
     });
 
-    test('el lote siempre carga lo mismo, rinda lo que rinda', () {
-      // La invariante del modelo: fijosUnidad × rendimiento es constante.
+    test('the batch always carries the same, whatever it yields', () {
+      // The model invariant: fijosUnidad × yield is constant.
       for (final rend in [1.0, 4.0, 12.0, 50.0, 200.0]) {
         final r = costear(producto(rendimiento: rend), cfg);
         expect(r.fijosUnidad * rend, closeTo(50000, 0.01),
@@ -154,31 +154,31 @@ void main() {
       }
     });
 
-    test('el mes recupera exactamente los gastos fijos', () {
-      // Sin esta igualdad el prorrateo estaría mal planteado: 20 lotes al mes
-      // tienen que sumar el millón, ni más ni menos.
+    test('the month recovers exactly the fixed costs', () {
+      // Without this equality the proration would be wrongly framed: 20
+      // batches a month have to add up to the million, no more, no less.
       final r = costear(producto(rendimiento: 50), cfg);
       final recuperadoAlMes = r.fijosUnidad * 50 * cfg.lotesMes;
       expect(recuperadoAlMes, closeTo(cfg.gastosMes, 0.01));
     });
 
-    test('un rendimiento inválido carga el lote entero', () {
-      // rendimiento 0 se trata como 1, igual que en la materia prima.
+    test('an invalid yield carries the whole batch', () {
+      // A yield of 0 is treated as 1, as with raw materials.
       final r = costear(producto(rendimiento: 0), cfg);
       expect(r.fijosUnidad, 50000);
     });
 
-    test('sin lotes al mes no se prorratea y se avisa', () {
+    test('with no batches per month there is no proration, and it warns', () {
       final r = costear(producto(), const ConfigCosteo(gastosMes: 1000000));
       expect(r.fijosUnidad, 0);
       expect(r.fijosIncompletos, isTrue);
     });
 
-    test('con gastos y lotes cargados, no se avisa', () {
+    test('with costs and batches filled in, no warning', () {
       expect(costear(producto(), cfg).fijosIncompletos, isFalse);
     });
 
-    test('el costo variable excluye los fijos', () {
+    test('the variable cost excludes the fixed ones', () {
       final r = costear(
         producto(),
         const ConfigCosteo(gastosMes: 100000, lotesMes: 100),
@@ -188,8 +188,8 @@ void main() {
     });
   });
 
-  group('precio sugerido', () {
-    test('método markup: se suma el margen al costo', () {
+  group('suggested price', () {
+    test('markup method: the margin is added to the cost', () {
       final r = costear(
         producto(metodoMargen: 'markup', margenPct: 50),
         const ConfigCosteo(),
@@ -198,8 +198,8 @@ void main() {
       expect(r.precioSugerido, 1500);
     });
 
-    test('método venta: el margen es sobre el precio final', () {
-      // 40% sobre venta con costo 1000 -> 1000/0.6 = 1666,67, no 1400.
+    test('sale method: the margin is on the final price', () {
+      // 40% on sale with a cost of 1000 -> 1000/0.6 = 1666.67, not 1400.
       final r = costear(
         producto(metodoMargen: 'venta', margenPct: 40),
         const ConfigCosteo(),
@@ -208,7 +208,7 @@ void main() {
       expect(r.margenSobreVenta, closeTo(40, 0.01));
     });
 
-    test('el margen sobre venta se limita al 95%', () {
+    test('the on-sale margin is capped at 95%', () {
       final r = costear(
         producto(metodoMargen: 'venta', margenPct: 99),
         const ConfigCosteo(),
@@ -218,7 +218,7 @@ void main() {
       expect(r.precioSugerido.isFinite, isTrue);
     });
 
-    test('el producto hereda el método y el margen del negocio', () {
+    test('the product inherits the business method and margin', () {
       final r = costear(
         producto(),
         const ConfigCosteo(metodoMargen: 'markup', margenPct: 25),
@@ -228,7 +228,7 @@ void main() {
       expect(r.precioSugerido, 1250);
     });
 
-    test('el margen del producto manda sobre el del negocio', () {
+    test('the product margin overrides the business one', () {
       final r = costear(
         producto(margenPct: 10),
         const ConfigCosteo(metodoMargen: 'markup', margenPct: 25),
@@ -236,7 +236,7 @@ void main() {
       expect(r.margen, 10);
     });
 
-    test('la línea sin azúcar usa el margen especial', () {
+    test('the sugar-free line uses the special margin', () {
       final r = costear(
         producto(sinAzucar: true),
         const ConfigCosteo(
@@ -248,56 +248,56 @@ void main() {
     });
   });
 
-  group('estado del precio', () {
+  group('price status', () {
     ResultadoCosteo conPrecio(double precio) => costear(
           producto(precioVenta: precio, metodoMargen: 'markup', margenPct: 50),
           const ConfigCosteo(),
         );
-    // costo 1000, sugerido 1500.
+    // cost 1000, suggested 1500.
 
-    test('sin precio cargado', () {
+    test('with no price entered', () {
       expect(conPrecio(0).estado, EstadoPrecio.sinPrecio);
       expect(conPrecio(-100).estado, EstadoPrecio.sinPrecio);
     });
 
-    test('por debajo del costo es pérdida', () {
+    test('below cost is a loss', () {
       expect(conPrecio(900).estado, EstadoPrecio.perdida);
     });
 
-    test('entre el costo y el sugerido está bajo', () {
+    test('between cost and suggested it is low', () {
       expect(conPrecio(1200).estado, EstadoPrecio.bajo);
     });
 
-    test('en el sugerido o por encima está bien', () {
+    test('at the suggested price or above it is fine', () {
       expect(conPrecio(1500).estado, EstadoPrecio.bien);
       expect(conPrecio(2000).estado, EstadoPrecio.bien);
     });
 
-    test('hay medio peso de tolerancia bajo el sugerido', () {
-      // Evita marcar en rojo un precio redondeado a mano.
+    test('there is half a peso of tolerance below the suggested price', () {
+      // Keeps a hand-rounded price from showing up red.
       expect(conPrecio(1499.6).estado, EstadoPrecio.bien);
       expect(conPrecio(1499.4).estado, EstadoPrecio.bajo);
     });
 
-    test('cobrar justo el costo no es pérdida, pero sí precio bajo', () {
+    test('charging exactly cost is not a loss, but it is a low price', () {
       expect(conPrecio(1000).estado, EstadoPrecio.bajo);
     });
   });
 
-  group('derivados', () {
-    test('utilidad y contribución', () {
+  group('derived figures', () {
+    test('profit and contribution', () {
       final r = costear(
         producto(metodoMargen: 'markup', margenPct: 50),
         const ConfigCosteo(gastosMes: 100000, lotesMes: 100),
       );
-      // costo 1000 + fijos 1000 = 2000; sugerido 3000.
+      // cost 1000 + fixed 1000 = 2000; suggested 3000.
       expect(r.costoUnidad, 2000);
       expect(r.precioSugerido, 3000);
       expect(r.utilidad, 1000);
       expect(r.contribucion, 2000); // 3000 - variable 1000
     });
 
-    test('el punto de equilibrio son los fijos entre la contribución', () {
+    test('break-even is fixed costs divided by contribution', () {
       final r = costear(
         producto(metodoMargen: 'markup', margenPct: 50),
         const ConfigCosteo(gastosMes: 100000, lotesMes: 100),
@@ -305,7 +305,7 @@ void main() {
       expect(r.equilibrio, closeTo(50, 0.01)); // 100000 / 2000
     });
 
-    test('sin contribución positiva no hay equilibrio que calcular', () {
+    test('with no positive contribution there is no break-even to compute', () {
       final r = costear(
         producto(metodoMargen: 'markup', margenPct: 0),
         const ConfigCosteo(gastosMes: 100000, lotesMes: 0),
@@ -315,8 +315,8 @@ void main() {
     });
   });
 
-  group('simulador de alza de insumos', () {
-    test('factorInsumos encarece receta y empaque, no la mano de obra', () {
+  group('supply price rise simulator', () {
+    test('factorInsumos raises recipe and packaging, not labour', () {
       final p = producto(empaque: [ing(100, 1)], minutosPrep: 60);
       const cfg = ConfigCosteo(tarifaHora: 6000);
 
@@ -329,8 +329,8 @@ void main() {
     });
   });
 
-  group('panel de oportunidad', () {
-    test('suma la brecha mensual de los productos mal cobrados', () {
+  group('opportunity panel', () {
+    test('it sums the monthly gap of the underpriced products', () {
       final barato = producto(
         precioVenta: 1000, // sugerido 1500 -> brecha 500
         metodoMargen: 'markup',
@@ -349,7 +349,7 @@ void main() {
       );
     });
 
-    test('un producto sin unidades estimadas no suma', () {
+    test('a product with no estimated units adds nothing', () {
       final p = producto(
         precioVenta: 1000,
         metodoMargen: 'markup',
@@ -358,7 +358,7 @@ void main() {
       expect(dineroMesOportunidad([p], const ConfigCosteo()), 0);
     });
 
-    test('productosPorDebajo cuenta pérdidas y precios bajos', () {
+    test('productosPorDebajo counts losses and low prices', () {
       final enPerdida = producto(
           precioVenta: 500, metodoMargen: 'markup', margenPct: 50);
       final bajo = producto(
@@ -373,7 +373,7 @@ void main() {
   });
 
   group('ConfigCosteo.deNegocio', () {
-    test('sin negocio devuelve los valores por defecto', () {
+    test('with no business it returns the defaults', () {
       final cfg = ConfigCosteo.deNegocio(null);
       expect(cfg.margenPct, 40);
       expect(cfg.metodoMargen, 'venta');

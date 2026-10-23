@@ -2,7 +2,7 @@ import 'dart:math';
 import 'models/producto.dart';
 import 'models/negocio.dart';
 
-// Configuración de costeo (viene del negocio).
+// Costing configuration (comes from the business).
 class ConfigCosteo {
   final double tarifaHora;
   final double costoEnergiaHora;
@@ -86,8 +86,8 @@ class ResultadoCosteo {
   });
 }
 
-// Dinero mensual que se deja de ganar: por cada producto cuyo precio actual
-// está por debajo del sugerido, la brecha por unidad × unidades/mes estimadas.
+// Monthly money left on the table: for every product priced below its
+// suggested price, the per-unit gap × estimated units/month.
 double dineroMesOportunidad(List<Producto> productos, ConfigCosteo cfg) {
   double total = 0;
   for (final p in productos) {
@@ -114,13 +114,13 @@ ResultadoCosteo costear(Producto p, ConfigCosteo cfg,
     {double factorInsumos = 1.0}) {
   final rend = max(1.0, p.rendimiento);
 
-  // 1. Materia prima (lote). factorInsumos simula un alza de precios de insumos.
+  // 1. Raw materials (per batch). factorInsumos simulates a supply price rise.
   double materiaPrima = 0;
   for (final ing in p.receta) {
     materiaPrima += ing.costo * factorInsumos;
   }
 
-  // 2. Merma (división: perder 10% encarece 11,1%)
+  // 2. Waste (a division: losing 10% raises the cost by 11.1%)
   final mermaPct = p.mermaPct.clamp(0, 95).toDouble();
   final conMerma = materiaPrima / (1 - mermaPct / 100);
   final materiaUnidad = conMerma / rend;
@@ -131,15 +131,15 @@ ResultadoCosteo costear(Producto p, ConfigCosteo cfg,
     empaqueUnidad += e.costo * factorInsumos;
   }
 
-  // 4. Mano de obra y 5. energía (por unidad)
+  // 4. Labour and 5. energy (per unit)
   final manoObraUnidad = (p.minutosPrep / 60) * cfg.tarifaHora / rend;
   final energiaUnidad = (p.minutosHorno / 60) * cfg.costoEnergiaHora / rend;
 
-  // 6. Gastos fijos prorrateados POR LOTE, no por unidad.
-  // Cada preparación carga una parte igual de los gastos del mes, y esa parte
-  // se reparte entre las unidades que rinde. Así una torta (lote de una
-  // unidad) carga un lote entero, y un lote de 50 galletas carga lo mismo
-  // repartido entre las 50: ocupar el horno cuesta igual en los dos casos.
+  // 6. Fixed costs prorated PER BATCH, not per unit.
+  // Every preparation carries an equal share of the month's costs, and that
+  // share is split across the units it yields. So a cake (a batch of one)
+  // carries a whole batch, and a batch of 50 cookies carries the same amount
+  // split across the 50: occupying the oven costs the same either way.
   final fijosLote = cfg.lotesMes > 0 ? cfg.gastosMes / cfg.lotesMes : 0.0;
   final fijosUnidad = fijosLote / rend;
 

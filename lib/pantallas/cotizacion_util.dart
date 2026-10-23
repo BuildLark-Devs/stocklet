@@ -61,7 +61,7 @@ String textoCotizacion(Cotizacion c, Negocio? n, AppLocalizations t) {
   return L.join('\n');
 }
 
-// Genera el PDF y abre el diálogo de imprimir/compartir del sistema.
+// Builds the PDF and opens the system print/share dialog.
 Future<void> imprimirCotizacion(
     Cotizacion c, Negocio? n, AppLocalizations t) async {
   final doc = pw.Document();

@@ -2,7 +2,7 @@ import 'ingrediente_de_receta.dart';
 import 'insumo.dart';
 import 'item_pedido.dart';
 
-// La lista de tipos. Para agregar uno nuevo, solo añádelo aquí.
+// The list of types. To add a new one, just append it here.
 const List<String> tiposDeProducto = [
   'Tortas',
   'Alfajores',
@@ -16,7 +16,7 @@ class Producto {
   String nombre;
   String tipo;
 
-  // Ingredientes por LOTE (la receta rinde `rendimiento` unidades).
+  // Ingredients per BATCH (the recipe yields `rendimiento` units).
   List<IngredienteDeReceta> receta;
   // Empaque por UNIDAD vendida.
   List<IngredienteDeReceta> empaque;
@@ -51,7 +51,7 @@ class Producto {
 
   double get _rend => rendimiento <= 0 ? 1 : rendimiento;
 
-  // Materia prima del lote (suma de ingredientes).
+  // Raw materials for the batch (the sum of the ingredients).
   double materiaLote() {
     double total = 0;
     for (final ing in receta) {
@@ -68,8 +68,8 @@ class Producto {
     return total;
   }
 
-  // Costo directo por unidad: materia (con merma) prorrateada + empaque.
-  // No incluye mano de obra ni gastos fijos (eso lo calcula el motor de costeo).
+  // Direct cost per unit: materials (with waste) prorated + packaging.
+  // Excludes labour and fixed costs (the costing engine computes those).
   double costoProduccion() {
     final merma = mermaPct.clamp(0, 95).toDouble();
     final conMerma = materiaLote() / (1 - merma / 100);
@@ -79,8 +79,8 @@ class Producto {
   double get ganancia => precioVenta - costoProduccion();
   double get margen => precioVenta > 0 ? ganancia / precioVenta : 0;
 
-  // Consumo de insumos por UNIDAD vendida (materia prorrateada por rendimiento
-  // + empaque). Se usa como copia de receta al agregar a un pedido.
+  // Supply consumption per UNIT sold (materials prorated by yield +
+  // packaging). Used as the recipe snapshot when adding to an order.
   List<RecetaItem> consumoPorUnidad() {
     return [
       for (final ing in receta)
@@ -90,8 +90,8 @@ class Producto {
     ];
   }
 
-  // Descuenta del inventario lo que consume vender `cantidadVendida` unidades:
-  // materia prorrateada por rendimiento + empaque por unidad.
+  // Deducts from stock what selling `cantidadVendida` units consumes:
+  // materials prorated by yield + packaging per unit.
   void descontarStock(double cantidadVendida) {
     for (final ing in receta) {
       ing.insumo.stockActual -= (ing.cantidad / _rend) * cantidadVendida;

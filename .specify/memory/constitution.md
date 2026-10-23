@@ -1,174 +1,219 @@
+<!--
+Sync Impact Report — 1.1.0 -> 1.2.0 (MINOR)
+
+Why: the document was in Spanish while the repository moved to English, and two
+of its statements had become false in the same change that added CI.
+
+Principles changed:
+- I. Renamed to "Spanish domain, English repository, translated interface". The
+  rule itself is unchanged — domain vocabulary, Firestore keys, class, field and
+  file names stay in Spanish — and the clause that comments, documentation,
+  tests, commit messages and repository prose are written in English is now
+  explicit instead of implied.
+- V. The claim "the project has no CI" is retired. Both suites now run on every
+  pull request as required status checks; the manual gate stays on top of them,
+  it is not replaced.
+
+Sections changed:
+- Development Workflow: "development happens on main, there is no pull request
+  process" replaced by the protected-branch flow. Commit messages move from
+  Spanish to English.
+- Governance: pointer corrected from README.md to docs/DEVELOPMENT.md.
+
+Templates requiring no change: plan, spec, tasks and checklist templates carry
+no language or branching assumptions.
+
+Deferred: renaming Spanish identifiers in `lib/` and `functions/`, and the
+`reposteria_app` package name, would require a MAJOR amendment to Principle I
+plus a Firestore data migration. Not proposed.
+-->
+
 # Stocklet Constitution
 
 ## Core Principles
 
-### I. Dominio en español, interfaz siempre traducida
+### I. Spanish domain, English repository, translated interface
 
-El vocabulario del dominio (insumo, producto, receta, costeo, venta, gasto, pedido,
-cotización, negocio) es la fuente de verdad y se escribe en español: nombres de clases,
-campos, archivos, carpetas y claves de Firestore MUST mantener ese idioma, aunque el
-código Flutter que los rodea esté en inglés.
+The domain vocabulary (insumo, producto, receta, costeo, venta, gasto, pedido,
+cotización, negocio) is the source of truth and is written in Spanish: class
+names, fields, files, folders and Firestore keys MUST keep that language, even
+though the Flutter code around them is English. These names are bound to live
+production data and to the security rules; renaming them is a data migration,
+not a translation.
 
-Ningún texto visible por la persona usuaria puede escribirse literal en el código: MUST
-obtenerse vía `AppLocalizations` y declararse en los cuatro ARB (`app_es`, `app_en`,
-`app_pt`, `app_fr`). Una clave nueva MUST añadirse a los cuatro archivos en el mismo
-cambio; dejar una traducción sin poner rompe el idioma en producción, no solo el build.
-Tras tocar cualquier ARB MUST ejecutarse `flutter gen-l10n`.
+Everything else in the repository is written in **English**: comments, doc
+comments, documentation, test names, CI configuration, pull request and issue
+templates, branch names and commit messages.
 
-Razón: el producto se vende en cuatro idiomas pero se piensa y se mantiene en español;
-mezclar ambos planos es lo que produce cadenas sueltas sin traducir y modelos con
-nombres inconsistentes.
+No text visible to the user may be written literally in the code: it MUST come
+through `AppLocalizations` and be declared in all four ARB files (`app_es`,
+`app_en`, `app_pt`, `app_fr`). A new key MUST be added to all four in the same
+change; leaving a translation out breaks the language in production, not just
+the build. After touching any ARB, `flutter gen-l10n` MUST be run.
 
-### II. Aislamiento por negocio y roles (NO NEGOCIABLE)
+Rationale: the product is sold in four languages, its data model is Spanish and
+cannot move, and the repository is public. Separating the three planes is what
+keeps untranslated strings and inconsistent model names from appearing.
 
-Stocklet es multiempresa. Toda lectura y escritura de datos de negocio MUST estar
-acotada a `negocios/{negocioId}` del negocio activo; queda prohibido consultar
-colecciones de negocio a nivel raíz o derivar el `negocioId` de algo que no sea la
-sesión vigente en `DatosApp`.
+### II. Per-business isolation and roles (NON-NEGOTIABLE)
 
-Los roles `dueno`, `socio` y `empleado` definen qué se puede hacer. Ocultar un botón en
-la UI NO es control de acceso: toda acción restringida MUST validarse también del lado
-servidor (reglas de Firestore o Cloud Function). Un cambio que amplíe lo que puede hacer
-un rol MUST revisar ambos lados en el mismo cambio.
+Stocklet is multi-company. Every read and write of business data MUST be scoped
+to `negocios/{negocioId}` of the active business; querying business collections
+at the root level, or deriving the `negocioId` from anything other than the
+current session in `DatosApp`, is forbidden.
 
-El acceso a funciones Pro MUST pasar por `exigirPro(context)`
-(`lib/servicios/gate_pro.dart`); no se permiten comprobaciones ad-hoc de `esPro`
-dispersas por las pantallas.
+The roles `dueno`, `socio` and `empleado` define what can be done. Hiding a
+button in the UI is NOT access control: every restricted action MUST also be
+validated server side (Firestore rules or a Cloud Function). A change that
+widens what a role can do MUST review both sides in the same change.
 
-Razón: una fuga entre negocios o una escalada de rol expone datos contables de terceros.
-Es el único fallo de esta app que no admite parche posterior.
+Access to Pro features MUST go through `exigirPro(context)`
+(`lib/servicios/gate_pro.dart`); ad-hoc `esPro` checks scattered across screens
+are not allowed.
 
-### III. Estado y persistencia centralizados en DatosApp
+Rationale: a leak between businesses or a role escalation exposes third parties'
+accounting data. It is the one failure in this app that cannot be patched after
+the fact.
 
-Las pantallas (`lib/pantallas/`) MUST leer y mutar el estado a través de `DatosApp`
-(Provider) o de un servicio de `lib/servicios/`. Está prohibido que una pantalla
-instancie `FirebaseFirestore`, `FirebaseStorage`, `FirebaseAuth` o `FirebaseFunctions`
-directamente.
+### III. State and persistence centralised in DatosApp
 
-Los modelos de `lib/models/` MUST conservar su propia serialización (`fromMap`/`toMap`)
-y ser el único lugar donde se conoce la forma del documento en Firestore. La lógica
-derivada (costeo, márgenes, resúmenes, tendencias) vive en `lib/costeo.dart` y en
-`DatosApp`, no dentro de los `build()`.
+Screens (`lib/pantallas/`) MUST read and mutate state through `DatosApp`
+(Provider) or a service in `lib/servicios/`. A screen instantiating
+`FirebaseFirestore`, `FirebaseStorage`, `FirebaseAuth` or `FirebaseFunctions`
+directly is forbidden.
 
-Las pantallas SHOULD limitarse a presentación; cuando una pantalla necesita lógica nueva
-no trivial, esa lógica MUST ubicarse en el modelo, el servicio o `DatosApp` que le
-corresponda.
+The models in `lib/models/` MUST keep their own serialisation
+(`fromMap`/`toMap`) and be the only place that knows the shape of the Firestore
+document. Derived logic (costing, margins, summaries, trends) lives in
+`lib/costeo.dart` and in `DatosApp`, not inside `build()`.
 
-Razón: con 91 archivos Dart y sin capa de repositorio, `DatosApp` es la única frontera
-que impide que cada pantalla invente su propio contrato con Firestore.
+Screens SHOULD stay presentational; when a screen needs non-trivial new logic,
+that logic MUST go in the model, the service or the `DatosApp` that owns it.
 
-### IV. Dinero, cantidades y costeo pasan por los helpers
+Rationale: with 91 Dart files and no repository layer, `DatosApp` is the only
+boundary that stops every screen from inventing its own contract with Firestore.
 
-Todo importe mostrado MUST formatearse con los helpers de `lib/formato.dart`, respetando
-la moneda y el locale configurados por el negocio; queda prohibido `toStringAsFixed`,
-concatenar símbolos de moneda a mano o asumir separadores decimales.
+### IV. Money, quantities and costing go through the helpers
 
-Las conversiones entre unidades MUST usar `lib/unidades.dart`, y los cálculos de costo,
-margen y precio sugerido MUST usar `lib/costeo.dart`. Las cantidades de insumos y recetas
-admiten decimales y MUST tratarse como `double`, nunca como enteros.
+Every displayed amount MUST be formatted with the helpers in
+`lib/formato.dart`, respecting the currency and locale the business configured;
+`toStringAsFixed`, hand-concatenated currency symbols and assumed decimal
+separators are forbidden.
 
-Cualquier regla de cálculo nueva MUST añadirse a estos módulos y reutilizarse, en lugar
-de duplicarse en la pantalla que la necesitó primero.
+Unit conversions MUST use `lib/unidades.dart`, and cost, margin and suggested
+price calculations MUST use `lib/costeo.dart`. Supply and recipe quantities
+accept decimals and MUST be treated as `double`, never as integers.
 
-Razón: la app es una herramienta contable multi-moneda; un redondeo inconsistente entre
-dos pantallas destruye la confianza en todos los números que muestra.
+Any new calculation rule MUST be added to these modules and reused, rather than
+duplicated in whichever screen needed it first.
 
-### V. Verificación antes de entregar (NO NEGOCIABLE)
+Rationale: the app is a multi-currency accounting tool; inconsistent rounding
+between two screens destroys trust in every number it shows.
 
-El proyecto ya tiene dos suites automatizadas, pero **no tiene CI**: nadie las ejecuta
-salvo que se corran a mano. La puerta de calidad sigue siendo explícita y manual, y ahora
-incluye correrlas. Antes de dar por terminado cualquier cambio:
+### V. Verification before delivering (NON-NEGOTIABLE)
 
-- `flutter analyze` MUST terminar sin errores ni advertencias nuevas.
-- `flutter test` MUST pasar entero (lógica pura: costeo, unidades, formato).
-- Si el cambio toca `firestore.rules`, `storage.rules`, roles o permisos, la suite de
-  reglas MUST pasar entera: `cd test/rules && npm test`.
-- Si se tocaron archivos ARB, `flutter gen-l10n` MUST ejecutarse y el resultado compilar.
-- El flujo afectado MUST ejecutarse al menos una vez en la app real (`flutter run`);
-  "compila" no cuenta como verificado, y las pruebas en verde tampoco.
-- Un cambio que toque permisos, roles, cobros o datos de negocio MUST probarse además con
-  un rol distinto de `dueno`.
+The project has two automated suites, and since October 2026 both run in CI on
+every pull request as required status checks (see `CONTRIBUTING.md`). CI is the
+floor, not the ceiling: it cannot run the app, so the manual gate stays on top
+of it. Before considering any change finished:
 
-Qué entra con prueba, obligatoriamente:
+- `flutter analyze` MUST finish with no new errors or warnings.
+- `flutter test` MUST pass in full (pure logic: costing, units, formatting).
+- If the change touches `firestore.rules`, `storage.rules`, roles or
+  permissions, the rules suite MUST pass in full: `cd test/rules && npm test`.
+- If ARB files were touched, `flutter gen-l10n` MUST be run and the result MUST
+  compile.
+- The affected flow MUST be exercised at least once in the real app
+  (`flutter run`); "it compiles" does not count as verified, and neither does a
+  green test run.
+- A change touching permissions, roles, billing or business data MUST also be
+  tested with a role other than `dueno`.
 
-- Lógica pura nueva o modificada en `lib/costeo.dart`, `lib/unidades.dart` o
-  `lib/formato.dart` MUST entrar con su prueba en `test/`.
-- Un cambio de reglas de seguridad o del modelo de roles MUST entrar con su prueba en
-  `test/rules/`, tanto para lo que se permite como para lo que se deniega.
-- Un bug corregido en esos módulos SHOULD entrar con la prueba que lo habría detectado.
+What must arrive with a test, without exception:
 
-Lo que quede sin verificar MUST reportarse en lugar de declarar el trabajo terminado.
+- New or modified pure logic in `lib/costeo.dart`, `lib/unidades.dart` or
+  `lib/formato.dart` MUST arrive with its test in `test/`.
+- A change to the security rules or the role model MUST arrive with its test in
+  `test/rules/`, covering both what is allowed and what is denied.
+- A bug fixed in those modules SHOULD arrive with the test that would have
+  caught it.
 
-Razón: las suites cubren el cálculo del dinero y el aislamiento entre negocios, que son
-los dos sitios donde un error no se nota hasta que ya hizo daño. Pero sin CI nadie las
-ejecuta por ti, y ninguna de las dos prueba la app de verdad: por eso el paso manual no
-desaparece, se suma.
+Whatever is left unverified MUST be reported instead of declaring the work done.
 
-## Restricciones de Stack y Plataforma
+Rationale: the suites cover the money calculation and the isolation between
+businesses, the two places where an error goes unnoticed until it has already
+done damage. CI now runs them for you, but neither suite exercises the real app:
+that is why the manual step does not disappear.
 
-- **Stack fijo**: Flutter/Dart (SDK `^3.12.2`) sobre Firebase (Auth, Firestore, Storage,
-  Functions, Messaging, Analytics, Crashlytics). Estado con `provider`. Suscripciones con
-  RevenueCat (`purchases_flutter`). Introducir una dependencia de peso equivalente a
-  cualquiera de estas requiere enmienda de esta constitución.
-- **Objetivos de despliegue**: Android (Google Play, `com.buildlark.stocklet`), iOS y
-  web/PWA vía Firebase Hosting. Un cambio MUST seguir compilando para los tres; si rompe
-  alguno, MUST declararse explícitamente.
-- **Secretos y configuración**: `android/app/google-services.json`,
-  `lib/firebase_options.dart` y `ios/Runner/GoogleService-Info.plist` no se versionan y
-  MUST NOT commitearse. Ninguna clave de API va en el código fuente.
-- **Cloud Functions**: `functions/` es JavaScript y se despliega aparte
-  (`firebase deploy --only functions`). Un cambio que dependa de una función nueva MUST
-  indicar que ese despliegue es parte de la entrega.
-- **Monetización**: el modelo es freemium y puede estar inactivo (`esPro` = true). El
-  código MUST funcionar correctamente con la monetización activa e inactiva.
-- **Observabilidad**: los errores no controlados MUST llegar a Crashlytics. No se
-  registran en logs datos personales ni contables de los negocios.
+## Stack and Platform Constraints
 
-## Flujo de Desarrollo y Puertas de Calidad
+- **Fixed stack**: Flutter/Dart (SDK `^3.12.2`) on Firebase (Auth, Firestore,
+  Storage, Functions, Messaging, Analytics, Crashlytics). State with `provider`.
+  Subscriptions with RevenueCat (`purchases_flutter`). Introducing a dependency
+  of comparable weight to any of these requires an amendment to this document.
+- **Deployment targets**: Android (Google Play, `com.buildlark.stocklet`), iOS
+  and web/PWA through Firebase Hosting. A change MUST keep compiling for all
+  three; if it breaks one, that MUST be stated explicitly.
+- **Secrets and configuration**: `android/app/google-services.json`,
+  `lib/firebase_options.dart` and `ios/Runner/GoogleService-Info.plist` are not
+  versioned and MUST NOT be committed. No API key goes in the source. CI uses
+  `tool/ci/firebase_options.dart.stub`, which carries filler values only.
+- **Cloud Functions**: `functions/` is JavaScript and deploys separately
+  (`firebase deploy --only functions`). A change that depends on a new function
+  MUST state that the deployment is part of the delivery.
+- **Monetisation**: the model is freemium and may be inactive (`esPro` = true).
+  The code MUST work correctly with monetisation both active and inactive.
+- **Observability**: unhandled errors MUST reach Crashlytics. No personal or
+  accounting data from the businesses is written to logs.
 
-- **Spec Kit**: el trabajo de funcionalidad sigue `/speckit-specify` → `/speckit-plan` →
-  `/speckit-tasks` → `/speckit-implement`. Los bugs usan la extensión `bug`
+## Development Workflow and Quality Gates
+
+- **Spec Kit**: feature work follows `/speckit-specify` → `/speckit-plan` →
+  `/speckit-tasks` → `/speckit-implement`. Bugs use the `bug` extension
   (`assess` → `fix` → `test`).
-- **Rama**: el desarrollo ocurre sobre `main`. No hay proceso de pull request ni revisión
-  por pares; quien mantiene el proyecto es responsable único de aplicar estas reglas
-  antes de commitear.
-- **Commits**: mensaje en español, describiendo el cambio funcional. Un commit MUST NOT
-  mezclar una funcionalidad nueva con una refactorización amplia no relacionada.
-- **Puerta previa al commit**: Principio V completo (analyze limpio, `flutter test` en
-  verde, suite de reglas en verde si aplica, l10n regenerada si aplica, flujo ejecutado
-  en la app).
-- **Puerta previa a publicar**: `flutter build appbundle` para Play, y `flutter build web`
-  + `firebase deploy --only hosting` para web; verificar que la versión de `pubspec.yaml`
-  se incrementó.
-- **Complejidad**: toda estructura nueva (servicio, capa, abstracción) MUST justificarse
-  frente a la alternativa de extender `DatosApp`, los modelos o los helpers existentes.
+- **Branching**: `main` is protected. Every change lands through a pull request
+  with both required checks green; direct pushes to `main` are rejected,
+  including for admins. Branches are named `feat/…`, `fix/…`, `chore/…`,
+  `docs/…`. The flow is documented in `CONTRIBUTING.md`.
+- **Commits**: message in English, in Conventional Commits form, describing the
+  functional change. A commit MUST NOT mix a new feature with a broad unrelated
+  refactor.
+- **Pre-merge gate**: Principle V in full. CI covers analyze, `flutter test` and
+  the rules suite; the reviewer is responsible for the parts CI cannot check —
+  the flow exercised in the real app, and the non-`dueno` role where it applies.
+- **Pre-release gate**: `flutter build appbundle` for Play, and
+  `flutter build web` + `firebase deploy --only hosting` for web; verify that
+  the version in `pubspec.yaml` was incremented.
+- **Complexity**: every new structure (service, layer, abstraction) MUST be
+  justified against the alternative of extending `DatosApp`, the models or the
+  existing helpers.
 
 ## Governance
 
-Esta constitución tiene precedencia sobre cualquier otra práctica, costumbre o
-preferencia de estilo del proyecto. Cuando un plan, una tarea o una sugerencia de
-herramienta la contradiga, prevalece la constitución.
+This constitution takes precedence over any other practice, habit or style
+preference in the project. When a plan, a task or a tool suggestion contradicts
+it, the constitution wins.
 
-**Enmiendas**: cualquier cambio a este documento MUST hacerse mediante
-`/speckit-constitution`, MUST incluir el Sync Impact Report con el cambio de versión y
-los principios afectados, y MUST registrar la nueva fecha de última enmienda. Un
-principio no puede eliminarse ni debilitarse sin dejar escrito en el reporte por qué dejó
-de aplicar.
+**Amendments**: any change to this document MUST go through
+`/speckit-constitution`, MUST include the Sync Impact Report with the version
+change and the affected principles, and MUST record the new last-amended date. A
+principle cannot be removed or weakened without writing in the report why it
+stopped applying.
 
-**Versionado semántico de este documento**:
+**Semantic versioning of this document**:
 
-- MAJOR: se elimina o redefine un principio de forma incompatible con el anterior.
-- MINOR: se añade un principio o una sección, o se amplía materialmente una guía.
-- PATCH: aclaraciones, redacción o correcciones que no cambian el significado.
+- MAJOR: a principle is removed or redefined incompatibly with the previous one.
+- MINOR: a principle or section is added, or a guideline is materially extended.
+- PATCH: clarifications, wording or corrections that do not change the meaning.
 
-**Cumplimiento**: cada entrega MUST verificarse contra los cinco principios antes de
-darse por terminada; el Principio V es la puerta explícita. Las excepciones se permiten
-solo si quedan escritas en el plan de la funcionalidad, con su razón y su alcance
-acotado. Una excepción repetida es señal de que la constitución debe enmendarse, no de
-que la regla puede ignorarse.
+**Compliance**: every delivery MUST be verified against the five principles
+before being considered finished; Principle V is the explicit gate. Exceptions
+are allowed only if written into the feature plan, with their reason and a
+bounded scope. A repeated exception is a sign that the constitution should be
+amended, not that the rule can be ignored.
 
-Las guías operativas del día a día (comandos, puesta en marcha, stack) viven en
-`README.md`; si el README y esta constitución discrepan, manda esta constitución y el
-README MUST corregirse.
+The day-to-day operational guides (commands, setup, stack) live in
+`docs/DEVELOPMENT.md`; if that guide and this constitution disagree, this
+constitution wins and the guide MUST be corrected.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-09-17
+**Version**: 1.2.0 | **Ratified**: 2026-09-15 | **Last Amended**: 2026-10-23

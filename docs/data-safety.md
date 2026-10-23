@@ -1,151 +1,151 @@
-# Data Safety de Google Play — Stocklet
+# Google Play Data Safety — Stocklet
 
-Inventario de los datos que la app recoge, derivado del código (no de memoria).
-Está ordenado como el formulario de Play Console para poder transcribirlo de
-corrido: **Play Console → Política → Contenido de la app → Seguridad de los datos**.
+An inventory of the data the app collects, derived from the code (not from
+memory). It is ordered like the Play Console form so it can be transcribed in
+one pass: **Play Console → Policy → App content → Data safety**.
 
-> **Mantenerlo vivo.** Si un cambio hace que la app recoja un dato nuevo, esta
-> tabla MUST actualizarse en el mismo cambio. Una declaración desactualizada es
-> motivo de suspensión, no solo de rechazo.
+> **Keep it alive.** If a change makes the app collect something new, this table
+> MUST be updated in the same change. An out-of-date declaration is grounds for
+> suspension, not just rejection.
 >
-> Última revisión: 2026-09-17, sobre la versión 1.1.0+2.
+> Last reviewed: 2026-09-17, against version 1.1.0+2.
 
 ---
 
-## Resumen para el formulario
+## Summary for the form
 
-| Pregunta de Play | Respuesta |
+| Play question | Answer |
 |---|---|
-| ¿La app recoge o comparte alguno de los tipos de datos requeridos? | **Sí** |
-| ¿Todos los datos están cifrados en tránsito? | **Sí** (Firebase usa TLS siempre) |
-| ¿Se puede pedir la eliminación de los datos? | **Sí**, dentro de la app y por web |
-| ¿Recoge el ID de publicidad? | **No** — eliminado del manifest a propósito |
+| Does the app collect or share any of the required data types? | **Yes** |
+| Is all data encrypted in transit? | **Yes** (Firebase always uses TLS) |
+| Can users request that their data be deleted? | **Yes**, in the app and on the web |
+| Does it collect the advertising ID? | **No** — deliberately removed from the manifest |
 
-**Eliminación de cuenta.** Play exige las dos vías y ambas existen:
+**Account deletion.** Play requires both routes and both exist:
 
-- En la app: Ajustes → Seguridad → Eliminar cuenta (`eliminarCuenta`, Cloud Function).
-- Por web: la página de borrado de cuenta en `stocklet.buildlark.com`.
+- In the app: Settings → Security → Delete account (`eliminarCuenta`, a Cloud Function).
+- On the web: the account deletion page at `stocklet.buildlark.com`.
 
-Borra la cuenta de Auth, la ficha de usuario, los archivos en Storage y —si
-quien la pide es el dueño— todo el árbol del negocio y a sus miembros.
-
----
-
-## Datos recogidos
-
-Ninguno se **comparte** en el sentido de Play: todo va a Firebase (Google) y
-RevenueCat, que actúan como proveedores de servicio y procesan por cuenta de
-BuildLark. Declarar todo como **recogido**, no como compartido.
-
-### Información personal
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| Dirección de correo | Sí | Obligatorio | Gestión de la cuenta, inicio de sesión, recuperar contraseña | Firebase Auth |
-| Nombre | Sí | Opcional | Funcionalidad de la app: identificar a cada miembro del equipo | `usuarios/{uid}.nombre` |
-| Número de teléfono | Sí | Opcional | Funcionalidad: contacto del perfil, del negocio y **de los clientes del negocio** | `usuarios.celular`, `negocios.tel`, `cliente.telefono` en pedidos y cotizaciones |
-| Otra información personal | Sí | Opcional | Datos fiscales y de contacto del negocio: NIT, correo y ubicación (texto, no GPS) | `negocios.nit`, `.correo`, `.ubicacion` |
-
-> **Ojo con el teléfono de los clientes.** La app guarda nombre y teléfono de
-> los clientes del negocio (`models/cliente.dart`), que son terceros que no usan
-> la app. Hay que declararlo igual, y la política de privacidad debe decir que
-> el usuario es responsable de los datos de sus clientes que introduzca.
-
-### Información financiera
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| Historial de compras | Sí | Obligatorio (si se suscribe) | Gestionar la suscripción Pro | RevenueCat + Google Play Billing |
-| Otra información financiera | Sí | Obligatorio | Funcionalidad principal: es la contabilidad del negocio — ventas, gastos, costos, precios y márgenes | `negocios/{id}/ventas`, `/gastos`, `/productos`, `/insumos` |
-
-> Es el núcleo del producto. No se puede marcar "opcional": sin estos datos la
-> app no hace nada.
-
-### Fotos y vídeos
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| Fotos | Sí | Opcional | Foto de perfil y logo del negocio, elegidas por el usuario | Storage: `usuarios/{uid}/foto_perfil`, `negocios/{id}/logo/imagen` |
-
-Se usa `image_picker` sobre la galería, siempre por acción explícita del usuario.
-No hay acceso a cámara ni lectura automática de la galería.
-
-### Archivos y documentos
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| Archivos y documentos | Sí | Opcional | Catálogos en PDF que el negocio sube para consultarlos y compartirlos | Storage: `negocios/{id}/catalogos/` |
-
-### Actividad en la app
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| Interacciones con la app | Sí | Obligatorio | Analítica: pantallas visitadas, registradas automáticamente | Firebase Analytics (`FirebaseAnalyticsObserver`) |
-| Otro contenido generado por el usuario | Sí | Obligatorio | Funcionalidad: recetas, productos, insumos, pedidos, cotizaciones y sus notas | Subcolecciones de `negocios/{id}` |
-
-### Información y rendimiento de la app
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| Registros de fallos | Sí | Obligatorio | Diagnóstico de errores | Firebase Crashlytics |
-| Diagnósticos | Sí | Obligatorio | Rendimiento y estabilidad | Crashlytics y Analytics |
-
-### Identificadores de dispositivo u otros
-
-| Tipo de dato | Recogido | Obligatorio | Propósito | Dónde vive |
-|---|---|---|---|---|
-| ID de dispositivo u otros | Sí | Obligatorio | Enviar notificaciones push al dispositivo correcto; identificador de instancia de Analytics | `usuarios/{uid}.fcmTokens`, Firebase Analytics |
-
-**No es el ID de publicidad.** Se eliminó del manifest a propósito
-(`com.google.android.gms.permission.AD_ID` con `tools:node="remove"`). Si algún
-día se reactiva, hay que volver aquí y declararlo.
+It deletes the Auth account, the user record, the Storage files and — if the
+requester is the owner — the whole business tree and its members.
 
 ---
 
-## Datos que la app NO recoge
+## Data collected
 
-Declararlo bien también importa: marcar de más levanta revisiones innecesarias.
+None of it is **shared** in Play's sense: everything goes to Firebase (Google)
+and RevenueCat, which act as service providers and process on BuildLark's
+behalf. Declare everything as **collected**, not as shared.
 
-| Categoría | Por qué no |
+### Personal info
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| Email address | Yes | Required | Account management, sign-in, password recovery | Firebase Auth |
+| Name | Yes | Optional | App functionality: identifying each team member | `usuarios/{uid}.nombre` |
+| Phone number | Yes | Optional | Functionality: contact details for the profile, the business and **the business's own customers** | `usuarios.celular`, `negocios.tel`, `cliente.telefono` in orders and quotes |
+| Other personal info | Yes | Optional | Tax and contact details for the business: tax ID, email and location (text, not GPS) | `negocios.nit`, `.correo`, `.ubicacion` |
+
+> **Mind the customers' phone numbers.** The app stores the name and phone of
+> the business's customers (`models/cliente.dart`), who are third parties and do
+> not use the app. It has to be declared all the same, and the privacy policy
+> must state that the user is responsible for the customer data they enter.
+
+### Financial info
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| Purchase history | Yes | Required (if they subscribe) | Managing the Pro subscription | RevenueCat + Google Play Billing |
+| Other financial info | Yes | Required | Core functionality: this *is* the business's accounting — sales, expenses, costs, prices and margins | `negocios/{id}/ventas`, `/gastos`, `/productos`, `/insumos` |
+
+> This is the heart of the product. It cannot be marked "optional": without this
+> data the app does nothing.
+
+### Photos and videos
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| Photos | Yes | Optional | Profile photo and business logo, chosen by the user | Storage: `usuarios/{uid}/foto_perfil`, `negocios/{id}/logo/imagen` |
+
+`image_picker` is used against the gallery, always on an explicit user action.
+There is no camera access and no automatic gallery reading.
+
+### Files and docs
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| Files and docs | Yes | Optional | PDF catalogues the business uploads to consult and share | Storage: `negocios/{id}/catalogos/` |
+
+### App activity
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| App interactions | Yes | Required | Analytics: screens visited, recorded automatically | Firebase Analytics (`FirebaseAnalyticsObserver`) |
+| Other user-generated content | Yes | Required | Functionality: recipes, products, supplies, orders, quotes and their notes | Subcollections of `negocios/{id}` |
+
+### App info and performance
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| Crash logs | Yes | Required | Error diagnosis | Firebase Crashlytics |
+| Diagnostics | Yes | Required | Performance and stability | Crashlytics and Analytics |
+
+### Device or other IDs
+
+| Data type | Collected | Required | Purpose | Where it lives |
+|---|---|---|---|---|
+| Device or other IDs | Yes | Required | Sending push notifications to the right device; the Analytics instance identifier | `usuarios/{uid}.fcmTokens`, Firebase Analytics |
+
+**This is not the advertising ID.** It was deliberately removed from the
+manifest (`com.google.android.gms.permission.AD_ID` with `tools:node="remove"`).
+If it is ever re-enabled, come back here and declare it.
+
+---
+
+## Data the app does NOT collect
+
+Getting this right matters too: over-declaring triggers needless reviews.
+
+| Category | Why not |
 |---|---|
-| Ubicación | No hay permisos de ubicación en el manifest. El país se elige a mano de una lista. |
-| Contactos | Los clientes se escriben a mano; no se lee la agenda. |
-| Mensajes | No hay mensajería. |
-| Audio | No se graba. |
-| Calendario | Las fechas de pedido se escriben a mano. |
-| Salud y forma física | No aplica. |
-| Navegación web | No aplica. |
-| Datos sensibles (origen étnico, ideas políticas o religiosas, orientación sexual) | No se piden ni se infieren. |
+| Location | There are no location permissions in the manifest. The country is picked by hand from a list. |
+| Contacts | Customers are typed in by hand; the address book is never read. |
+| Messages | There is no messaging. |
+| Audio | Nothing is recorded. |
+| Calendar | Order dates are typed in by hand. |
+| Health and fitness | Not applicable. |
+| Web browsing | Not applicable. |
+| Sensitive data (ethnic origin, political or religious beliefs, sexual orientation) | Neither asked for nor inferred. |
 
 ---
 
-## Permisos declarados y su justificación
+## Declared permissions and their justification
 
-Del manifest fusionado del `.aab` de release, versión 1.1.0+2:
+From the merged manifest of the release `.aab`, version 1.1.0+2:
 
-| Permiso | Lo aporta | Para qué |
+| Permission | Comes from | What for |
 |---|---|---|
-| `INTERNET` | Firebase | Todo el funcionamiento |
-| `ACCESS_NETWORK_STATE` | Firebase | Detectar conectividad |
-| `WAKE_LOCK` | Firebase Messaging | Procesar notificaciones |
-| `POST_NOTIFICATIONS` | Firebase Messaging | Push en Android 13+ (se pide en runtime) |
-| `com.android.vending.BILLING` | RevenueCat | Suscripción Pro |
-| `com.google.android.c2dm.permission.RECEIVE` | Firebase Messaging | Recibir push |
-| `READ_GSERVICES` | Google Play Services | Servicios de Google |
-| `BIND_GET_INSTALL_REFERRER_SERVICE` | Firebase Analytics | Origen de la instalación |
+| `INTERNET` | Firebase | Everything |
+| `ACCESS_NETWORK_STATE` | Firebase | Detecting connectivity |
+| `WAKE_LOCK` | Firebase Messaging | Processing notifications |
+| `POST_NOTIFICATIONS` | Firebase Messaging | Push on Android 13+ (requested at runtime) |
+| `com.android.vending.BILLING` | RevenueCat | The Pro subscription |
+| `com.google.android.c2dm.permission.RECEIVE` | Firebase Messaging | Receiving push |
+| `READ_GSERVICES` | Google Play Services | Google services |
+| `BIND_GET_INSTALL_REFERRER_SERVICE` | Firebase Analytics | Install attribution |
 
 ---
 
-## Antes de enviar el formulario
+## Before submitting the form
 
-- [ ] La política de privacidad publicada en `stocklet.buildlark.com` cubre
-      **todo** lo de este inventario, incluidos los datos de los clientes del
-      negocio y la responsabilidad del usuario sobre ellos.
-- [ ] La URL de la política está puesta en la ficha de Play.
-- [ ] La URL de borrado de cuenta está puesta en la ficha de Play.
-- [ ] Si la monetización sigue inactiva (`SuscripcionService.activa = false`) en
-      la versión que se sube, revisar si conviene declarar ya el historial de
-      compras o esperar a activarla.
+- [ ] The privacy policy published at `stocklet.buildlark.com` covers
+      **everything** in this inventory, including the business's customer data
+      and the user's responsibility for it.
+- [ ] The policy URL is set on the Play listing.
+- [ ] The account deletion URL is set on the Play listing.
+- [ ] If monetisation is still inactive (`SuscripcionService.activa = false`) in
+      the version being uploaded, decide whether to declare purchase history now
+      or wait until it is switched on.
 
-> Esto es un inventario técnico derivado del código, no asesoría legal. Quien
-> firme la declaración ante Google es BuildLark S.A.S.
+> This is a technical inventory derived from the code, not legal advice. The
+> party signing the declaration to Google is BuildLark S.A.S.

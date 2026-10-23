@@ -1,13 +1,13 @@
 rules_version = '2';
 
-// Reglas de Cloud Storage para Stocklet.
+// Cloud Storage rules for Stocklet.
 //
-// Rutas que usa la app (lib/datos_app.dart):
-//   usuarios/{uid}/foto_perfil                  -> foto de perfil
-//   negocios/{negocioId}/logo/imagen            -> logo del negocio
-//   negocios/{negocioId}/catalogos/{archivo}    -> catálogos en PDF
+// Paths the app uses (lib/datos_app.dart):
+//   usuarios/{uid}/foto_perfil                  -> profile photo
+//   negocios/{negocioId}/logo/imagen            -> business logo
+//   negocios/{negocioId}/catalogos/{archivo}    -> PDF catalogues
 //
-// La pertenencia al negocio se consulta en Firestore, que es donde vive.
+// Business membership is read from Firestore, which is where it lives.
 
 service firebase.storage {
   match /b/{bucket}/o {
@@ -33,8 +33,8 @@ service firebase.storage {
       return esMiembro(negocioId) && miFicha().get('rol', 'empleado') in ['dueno', 'socio'];
     }
 
-    // El logo solo lo cambia el dueño: panel_usuario.dart gatea esa acción en
-    // `esDueno` (negocio.duenoUid == uid), no en dueño-o-socio.
+    // Only the owner changes the logo: panel_usuario.dart gates that action on
+    // `esDueno` (negocio.duenoUid == uid), not on owner-or-partner.
     function esDuenoDelNegocio(negocioId) {
       return autenticado() &&
              firestore.exists(/databases/(default)/documents/negocios/$(negocioId)) &&
@@ -52,29 +52,29 @@ service firebase.storage {
              request.resource.size < 20 * 1024 * 1024;
     }
 
-    // Foto de perfil: la gestiona su dueño. La leen los miembros del negocio
-    // (la pantalla de miembros muestra las fotos).
+    // Profile photo: managed by its owner. Read by the members of the business
+    // (the members screen shows the photos).
     match /usuarios/{uid}/{archivo=**} {
       allow read: if autenticado();
       allow write: if autenticado() && request.auth.uid == uid && esImagen();
       allow delete: if autenticado() && request.auth.uid == uid;
     }
 
-    // Logo del negocio: lo ven todos los miembros, lo cambia solo el dueño.
+    // Business logo: every member sees it, only the owner changes it.
     match /negocios/{negocioId}/logo/{archivo=**} {
       allow read: if esMiembro(negocioId);
       allow write: if esDuenoDelNegocio(negocioId) && esImagen();
       allow delete: if esDuenoDelNegocio(negocioId);
     }
 
-    // Catálogos en PDF: los ven todos los miembros, los suben dueño y socio.
+    // PDF catalogues: every member sees them, owner and partner upload them.
     match /negocios/{negocioId}/catalogos/{archivo=**} {
       allow read: if esMiembro(negocioId);
       allow write: if esDuenoOSocio(negocioId) && esPdf();
       allow delete: if esDuenoOSocio(negocioId);
     }
 
-    // Todo lo demás, cerrado.
+    // Everything else, closed.
     match /{rutaCualquiera=**} {
       allow read, write: if false;
     }

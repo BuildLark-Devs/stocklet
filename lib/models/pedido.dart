@@ -33,19 +33,21 @@ class Pedido {
     this.otroValor = 0,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
-  /// Construye el pedido que corresponde a una cotización aceptada.
+  /// Builds the order matching an accepted quote.
   ///
-  /// Puro: no toca Firestore ni `DatosApp`, para poder probarlo sin emulador.
+  /// Pure: touches neither Firestore nor `DatosApp`, so it can be tested
+  /// without an emulator.
   ///
-  /// Conviven aquí dos verdades distintas. El **precio** de cada línea es el
-  /// cotizado y se congela, porque es lo que se le prometió al cliente. El
-  /// **costo y la receta** se toman del producto tal como está hoy, porque es
-  /// lo que la cocina va a consumir de verdad.
+  /// Two different truths live here. The **price** of each line is the quoted
+  /// one and is frozen, because that is what was promised to the customer.
+  /// The **cost and the recipe** are taken from the product as it stands
+  /// today, because that is what the kitchen will actually consume.
   ///
-  /// Una línea sin producto del catálogo —escrita a mano, o de un producto ya
-  /// borrado— entra sin costo ni receta: al entregar no descontará inventario.
+  /// A line with no catalogue product — written by hand, or from a product
+  /// already deleted — comes in with no cost and no recipe: on delivery it
+  /// will not deduct stock.
   ///
-  /// Garantiza que `precio == cotizacion.total`.
+  /// Guarantees that `precio == cotizacion.total`.
   factory Pedido.desdeCotizacion(
     Cotizacion cotizacion, {
     required List<Producto> productos,
@@ -87,9 +89,9 @@ class Pedido {
       precio: cotizacion.total,
       costo: costoTotal,
       items: items,
-      // Adiciones + domicilio − descuento + IVA, resumidos en un solo número
-      // para que el total del pedido sea exactamente el cotizado. Queda
-      // negativo si el descuento pesa más que los extras.
+      // Add-ons + delivery − discount + VAT, collapsed into a single number
+      // so the order total is exactly the quoted one. It goes negative if
+      // the discount outweighs the extras.
       otroValor: cotizacion.total - precioItems,
     );
   }
@@ -130,12 +132,12 @@ class Pedido {
   }
 }
 
-/// Cuánto consume el pedido de cada insumo, según la copia de receta que cada
-/// ítem guardó al agregarse. Pura.
+/// How much of each supply the order consumes, per the recipe snapshot each
+/// item kept when it was added. Pure.
 ///
-/// La usan dos sitios: el aviso previo de inventario insuficiente al convertir
-/// una cotización, y el descuento real en `DatosApp.marcarPedidoEntregado`. Que
-/// sea una sola función es lo que impide que el aviso y el descuento discrepen.
+/// Two places use it: the advance insufficient-stock warning when converting
+/// a quote, and the real deduction in `DatosApp.marcarPedidoEntregado`. Being
+/// one single function is what keeps warning and deduction from disagreeing.
 Map<String, double> consumoDeInsumos(Pedido pedido) {
   final consumo = <String, double>{};
   for (final item in pedido.items) {
@@ -146,11 +148,11 @@ Map<String, double> consumoDeInsumos(Pedido pedido) {
   return consumo;
 }
 
-/// Nombres de los insumos cuyo stock actual no cubre lo que el pedido
-/// consumiría. Lista vacía = alcanza para todo. Pura.
+/// Names of the supplies whose current stock does not cover what the order
+/// would consume. An empty list = there is enough for everything. Pure.
 ///
-/// Un insumo que ya no está en el catálogo no se reporta: tampoco se descuenta
-/// al entregar, así que avisar de él confundiría.
+/// A supply no longer in the catalogue is not reported: it is not deducted on
+/// delivery either, so warning about it would only confuse.
 List<String> faltantesDeInventario(Pedido pedido, List<Insumo> insumos) {
   final faltantes = <String>[];
   consumoDeInsumos(pedido).forEach((insumoId, cantidad) {

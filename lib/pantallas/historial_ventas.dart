@@ -20,7 +20,7 @@ class PantallaHistorialVentas extends StatefulWidget {
 class _PantallaHistorialVentasState extends State<PantallaHistorialVentas> {
   DateTime? _mes; // primer día del mes elegido (null = mes actual)
 
-  // Nombre del mes localizado según el idioma activo (ej. "Julio 2026").
+  // Month name localised to the active language (e.g. "Julio 2026").
   String _label(BuildContext context, DateTime f) {
     final locale = Localizations.localeOf(context).toString();
     final texto = DateFormat.yMMMM(locale).format(f);
@@ -73,7 +73,7 @@ class _PantallaHistorialVentasState extends State<PantallaHistorialVentas> {
             set.add(DateTime(v.fecha.year, v.fecha.month));
           }
           final todosMeses = set.toList()..sort((a, b) => b.compareTo(a));
-          // Gratis = últimos 3 meses de historial; el resto requiere Pro.
+          // Free = the last 3 months of history; the rest requires Pro.
           final hayMasHistorial = !datos.esPro && todosMeses.length > 3;
           final meses =
               datos.esPro ? todosMeses : todosMeses.take(3).toList();

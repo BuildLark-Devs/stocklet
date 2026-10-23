@@ -57,13 +57,13 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
   Future<void> _subir() async {
     final t = AppLocalizations.of(context)!;
     final datos = context.read<DatosApp>();
-    // Gratis = 1 catálogo. Para subir más, se requiere Pro.
+    // Free = 1 catalogue. Uploading more requires Pro.
     if (!datos.esPro && datos.catalogos.isNotEmpty) {
       await exigirPro(context);
       return;
     }
-    // Se aceptan todos los archivos y luego se valida .pdf manualmente
-    // (en iOS filtrar por 'pdf' a veces bloquea la selección).
+    // Accept every file and validate .pdf by hand afterwards (on iOS,
+    // filtering by 'pdf' sometimes blocks the picker entirely).
     final archivo = await openFile();
     if (archivo == null || !mounted) return;
     final bytes = await archivo.readAsBytes();
@@ -101,8 +101,8 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
   Future<void> _abrir(Catalogo c) async {
     final t = AppLocalizations.of(context)!;
     final uri = Uri.parse(c.url);
-    // En PWA instalada: intentar pestaña nueva ('_blank'); si el móvil
-    // la bloquea, abrir en la misma ventana ('_self').
+    // In an installed PWA: try a new tab ('_blank'); if the phone blocks it,
+    // open in the same window ('_self').
     var ok = await launchUrl(uri, webOnlyWindowName: '_blank');
     if (!ok) {
       ok = await launchUrl(uri, webOnlyWindowName: '_self');
@@ -142,7 +142,7 @@ class _PantallaCatalogoState extends State<PantallaCatalogo> {
     final t = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(t.catalogo)),
-      // El empleado consulta los catálogos, pero no los sube.
+      // The employee reads catalogues, but does not upload them.
       floatingActionButton: context.watch<DatosApp>().puedeGestionarCatalogo
           ? FloatingActionButton.extended(
               onPressed: subiendo ? null : _subir,

@@ -43,7 +43,7 @@ class PantallaAjustes extends StatelessWidget {
   Future<void> _acercaDe(BuildContext context) async {
     final m = AppColores.of(context);
     final t = AppLocalizations.of(context)!;
-    // Lee la versión automáticamente desde pubspec (package_info_plus).
+    // Reads the version automatically from pubspec (package_info_plus).
     final info = await PackageInfo.fromPlatform();
     if (!context.mounted) return;
     showAboutDialog(

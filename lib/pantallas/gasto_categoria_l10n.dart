@@ -1,7 +1,7 @@
 import 'package:reposteria_app/l10n/app_localizations.dart';
 import '../models/gasto.dart';
 
-// Nombre localizado de una categoría de gasto.
+// Localised name of an expense category.
 String nombreCategoria(AppLocalizations t, CategoriaGasto c) {
   switch (c) {
     case CategoriaGasto.insumos:

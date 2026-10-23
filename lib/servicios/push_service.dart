@@ -5,13 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reposteria_app/l10n/app_localizations.dart';
 import '../pantallas/notificaciones.dart';
 
-// Claves globales para navegar y mostrar avisos desde fuera del árbol de widgets
-// (por ejemplo, cuando llega una notificación push).
+// Global keys for navigating and showing notices from outside the widget
+// tree (for example, when a push notification arrives).
 final navigatorKey = GlobalKey<NavigatorState>();
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-// Servicio de notificaciones push (FCM). La campana en el inicio sigue igual;
-// esto solo recibe las push y, al tocarlas, abre la pantalla de notificaciones.
+// Push notification service (FCM). The bell on the home screen is unchanged;
+// this only receives pushes and, on tap, opens the notifications screen.
 class PushService {
   PushService._();
   static final PushService instance = PushService._();
@@ -24,28 +24,28 @@ class PushService {
       await _fm.setForegroundNotificationPresentationOptions(
           alert: true, badge: true, sound: true);
 
-      // App abierta al tocar una push estando en segundo plano.
+      // App opened by tapping a push while it was in the background.
       FirebaseMessaging.onMessageOpenedApp
           .listen((_) => _abrirNotificaciones());
 
-      // App abierta desde cerrada al tocar una push.
+      // App opened from closed by tapping a push.
       final inicial = await _fm.getInitialMessage();
       if (inicial != null) {
         WidgetsBinding.instance
             .addPostFrameCallback((_) => _abrirNotificaciones());
       }
 
-      // Push en primer plano: mostramos un aviso con acción "Ver".
+      // Push in the foreground: show a notice with a "View" action.
       FirebaseMessaging.onMessage.listen(_enPrimerPlano);
 
-      // Si el token cambia, lo volvemos a guardar.
+      // If the token changes, store it again.
       _fm.onTokenRefresh.listen((token) {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null) _guardar(uid, token);
       });
     } catch (_) {
-      // En web sin configuración de push, o si el usuario niega permisos,
-      // no queremos que la app falle al arrancar.
+      // On web without push configured, or if the user denies permission,
+      // the app must not fail to start.
     }
   }
 
@@ -72,8 +72,8 @@ class PushService {
     );
   }
 
-  // Guarda el token del dispositivo en usuarios/{uid}.fcmTokens (arrayUnion).
-  // Se llama cuando el usuario ya tiene negocio (su doc usuarios existe).
+  // Stores the device token in usuarios/{uid}.fcmTokens (arrayUnion).
+  // Called once the user has a business (their usuarios doc exists).
   Future<void> guardarToken(String uid) async {
     try {
       final token = await _fm.getToken();
@@ -87,7 +87,7 @@ class PushService {
         'fcmTokens': FieldValue.arrayUnion([token]),
       });
     } catch (_) {
-      // El doc puede no existir todavía; se guardará al entrar a un negocio.
+      // The doc may not exist yet; it is written on joining a business.
     }
   }
 }

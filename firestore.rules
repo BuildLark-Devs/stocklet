@@ -1,20 +1,20 @@
 rules_version = '2';
 
-// Reglas de seguridad de Firestore para Stocklet.
+// Firestore security rules for Stocklet.
 //
-// Principio rector (constitución, Principio II): la UI oculta botones, pero
-// quien decide de verdad es este archivo. Todo dato de negocio vive bajo
-// negocios/{negocioId} y solo lo toca quien pertenece a ese negocio, con el
-// permiso que le da su rol.
+// Guiding principle (constitution, Principle II): the UI hides buttons, but
+// this file is what actually decides. Every piece of business data lives under
+// negocios/{negocioId} and is only touched by someone who belongs to that
+// business, with the permission their role grants.
 //
-// Modelo de datos:
+// Data model:
 //   usuarios/{uid}          -> { negocioId, rol, nombre, celular, fotoUrl, ... }
 //   negocios/{negocioId}    -> { nombre, pais, moneda, idioma, duenoUid, ... }
 //   negocios/{negocioId}/{insumos|productos|ventas|gastos|pedidos|
 //                          cotizaciones|recetas|catalogos}/{docId}
 //   invitaciones/{codigo}   -> { negocioId, rol, estado, creadoPor, usadaPor }
 //
-// Roles: 'dueno' | 'socio' | 'empleado'.
+// Roles: 'dueno' (owner) | 'socio' (partner) | 'empleado' (employee).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -35,7 +35,7 @@ service cloud.firestore {
       return /databases/$(database)/documents/usuarios/$(request.auth.uid);
     }
 
-    // Tengo ficha de usuario (y por tanto puedo pertenecer a un negocio).
+    // I have a user record (and therefore can belong to a business).
     function tengoFicha() {
       return autenticado() && exists(rutaMiUsuario());
     }
@@ -52,10 +52,10 @@ service cloud.firestore {
       return miFicha().get('rol', 'empleado');
     }
 
-    // Un negocioId utilizable: existe y no es cadena vacía. Sin este guardia,
-    // un usuario sin negocioId ('' por defecto) sería "miembro" de cualquier
-    // documento cuyo negocioId también estuviera vacío, y las rutas que se
-    // construyen más abajo llevarían un segmento vacío (error de evaluación).
+    // A usable negocioId: it exists and is not an empty string. Without this
+    // guard, a user with no negocioId ('' by default) would be a "member" of any
+    // document whose negocioId was also empty, and the paths built further down
+    // would carry an empty segment (evaluation error).
     function negocioValido(negocioId) {
       return negocioId is string && negocioId != '';
     }
@@ -64,7 +64,7 @@ service cloud.firestore {
       return tengoFicha() && negocioValido(negocioId) && miNegocio() == negocioId;
     }
 
-    // Dueño por rol, o por ser quien creó el negocio (espejo de DatosApp.esDueno).
+    // Owner by role, or by having created the business (mirrors DatosApp.esDueno).
     function esDueno(negocioId) {
       return esMiembro(negocioId) && (
         miRol() == 'dueno' ||
@@ -74,12 +74,12 @@ service cloud.firestore {
       );
     }
 
-    // Dueño o socio: gestiona catálogo, edita finanzas y puede eliminar.
+    // Owner or partner: manages the catalogue, edits finances and may delete.
     function esDuenoOSocio(negocioId) {
       return esMiembro(negocioId) && (miRol() in ['dueno', 'socio'] || esDueno(negocioId));
     }
 
-    // Los campos indicados no cambian respecto a lo que ya había.
+    // The listed fields are unchanged from what was already there.
     function noTocaCampos(campos) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(campos);
     }
@@ -87,30 +87,30 @@ service cloud.firestore {
     // ------------------------------------------------------------------
     // usuarios/{uid}
     //
-    // Es la pieza sensible: aquí viven negocioId y rol, así que quien pueda
-    // escribirlos a voluntad puede meterse en cualquier negocio como dueño.
-    // Por eso solo se permiten dos caminos para fijarlos: crear un negocio
-    // propio, o canjear una invitación que ya quedó marcada a nombre de uno.
+    // This is the sensitive piece: negocioId and rol live here, so anyone able
+    // to write them at will could enter any business as its owner. That is why
+    // only two paths may set them: creating a business of your own, or redeeming
+    // an invitation already marked in your name.
     // ------------------------------------------------------------------
 
     match /usuarios/{uid} {
 
-      // Mi propia ficha, siempre. La de otros, solo si compartimos negocio
-      // (necesario para la pantalla de miembros).
+      // My own record, always. Someone else's only if we share a business
+      // (needed by the members screen).
       allow get: if esElMismo(uid) ||
                     (tengoFicha() && resource.data.get('negocioId', '') == miNegocio());
 
-      // Listado: solo la consulta filtrada por mi negocio.
+      // Listing: only the query filtered by my business.
       allow list: if tengoFicha() && resource.data.get('negocioId', '') == miNegocio();
 
-      // --- Escritura sobre mi propia ficha ---
+      // --- Writing to my own record ---
 
-      // Datos personales y de sesión, sin tocar pertenencia ni rol.
+      // Personal and session data, without touching membership or role.
       function soloDatosPersonales() {
         return resource != null && noTocaCampos(['negocioId', 'rol', 'invitacionCodigo']);
       }
 
-      // Me convierto en dueño de un negocio que acabo de crear.
+      // I become the owner of a business I have just created.
       function meHagoDuenoDeMiNegocio() {
         let negId = request.resource.data.get('negocioId', '');
         return request.resource.data.get('rol', '') == 'dueno' &&
@@ -120,11 +120,11 @@ service cloud.firestore {
                  .get('duenoUid', '') == request.auth.uid;
       }
 
-      // Me uno a un negocio con un código que ya reclamé (estado 'usada' a mi
-      // nombre). La invitación manda: negocio y rol deben coincidir con ella.
-      // Ojo: la ruta se construye dentro del cortocircuito, nunca en un `let`.
-      // Con el código vacío la ruta lleva un segmento vacío y la regla revienta
-      // antes de poder descartarla.
+      // I join a business with a code I already claimed (state 'usada' in my
+      // name). The invitation rules: business and role must match it.
+      // Note: the path is built inside the short circuit, never in a `let`.
+      // With an empty code the path carries an empty segment and the rule blows
+      // up before it can be discarded.
       function meUnoConInvitacion() {
         let codigo = request.resource.data.get('invitacionCodigo', '');
         return codigo != '' &&
@@ -150,15 +150,15 @@ service cloud.firestore {
                        meUnoConInvitacion()
                      );
 
-      // --- Escritura sobre la ficha de otro miembro ---
-      // El dueño cambia el rol de su gente, pero no puede fabricar más dueños
-      // ni mover a nadie de negocio.
+      // --- Writing to another member's record ---
+      // The owner changes their people's role, but cannot manufacture more
+      // owners nor move anyone between businesses.
       allow update: if resource != null &&
                        esDueno(resource.data.get('negocioId', '')) &&
                        request.resource.data.get('negocioId', '') == resource.data.get('negocioId', '') &&
                        request.resource.data.get('rol', '') in ['socio', 'empleado'];
 
-      // Salirme yo, o que el dueño saque a un miembro de su negocio.
+      // Me leaving, or the owner removing a member from their business.
       allow delete: if esElMismo(uid) ||
                        (resource != null && esDueno(resource.data.get('negocioId', '')));
     }
@@ -171,24 +171,24 @@ service cloud.firestore {
 
       allow get, list: if esMiembro(negocioId);
 
-      // Crear un negocio propio: el creador queda como dueño, sin excepción.
+      // Creating your own business: the creator becomes the owner, no exception.
       allow create: if autenticado() &&
                        request.resource.data.get('duenoUid', '') == request.auth.uid;
 
-      // Ajustes del negocio (moneda, costeo, apariencia): dueño o socio.
-      // El dueño no se puede reasignar desde el cliente.
+      // Business settings (currency, costing, appearance): owner or partner.
+      // The owner cannot be reassigned from the client.
       allow update: if resource != null && esDuenoOSocio(negocioId) &&
                        request.resource.data.get('duenoUid', '') == resource.data.get('duenoUid', '');
 
-      // El borrado del negocio lo hace la Cloud Function eliminarCuenta con
-      // privilegios de admin; desde el cliente, nunca.
+      // Deleting the business is done by the eliminarCuenta Cloud Function with
+      // admin privileges; never from the client.
       allow delete: if false;
 
       // ----------------------------------------------------------------
-      // Subcolecciones del negocio
+      // Business subcollections
       // ----------------------------------------------------------------
 
-      // Catálogo y documentos comerciales: solo dueño o socio los tocan.
+      // Catalogue and commercial documents: only owner or partner touch them.
       match /productos/{docId} {
         allow read: if esMiembro(negocioId);
         allow write: if esDuenoOSocio(negocioId);
@@ -199,27 +199,27 @@ service cloud.firestore {
         allow write: if esDuenoOSocio(negocioId);
       }
 
-      // Cotizaciones: cualquier miembro cotiza para un cliente, y puede
-      // corregir la cotización mientras la arma (la pantalla de edición no
-      // distingue rol). Borrarlas sigue siendo de dueño y socio.
-      // Nota: el modelo no guarda quién la creó, así que las reglas no pueden
-      // limitar la edición al autor; si eso hiciera falta, primero hay que
-      // añadir ese campo en models/cotizacion.dart.
+      // Quotes: any member quotes for a customer, and may correct the quote
+      // while assembling it (the edit screen does not distinguish role).
+      // Deleting them is still owner and partner only.
+      // Note: the model does not store who created it, so the rules cannot
+      // limit editing to the author; if that is ever needed, the field has to
+      // be added in models/cotizacion.dart first.
       match /cotizaciones/{docId} {
         allow read, create, update: if esMiembro(negocioId);
         allow delete: if esDuenoOSocio(negocioId);
       }
 
-      // Catálogos: el empleado los consulta, pero no los sube ni los borra.
+      // Catalogues: the employee reads them, but does not upload or delete them.
       match /catalogos/{docId} {
         allow read: if esMiembro(negocioId);
         allow write: if esDuenoOSocio(negocioId);
       }
 
-      // Insumos: dueño y socio mandan. El empleado NO puede editar un insumo,
-      // pero sí tiene que poder descontar inventario al vender o despachar un
-      // pedido. La app guarda el documento entero en ese flujo, así que lo que
-      // se verifica es que el único campo que cambie de valor sea stockActual.
+      // Supplies: owner and partner rule. The employee may NOT edit a supply,
+      // but does have to be able to deduct stock when selling or dispatching an
+      // order. The app saves the whole document in that flow, so what is
+      // verified is that the only field changing value is stockActual.
       match /insumos/{docId} {
         allow read: if esMiembro(negocioId);
         allow create, delete: if esDuenoOSocio(negocioId);
@@ -229,8 +229,8 @@ service cloud.firestore {
                             .affectedKeys().hasOnly(['stockActual']));
       }
 
-      // Movimientos: cualquier miembro registra; corregir o borrar el
-      // historial queda para dueño y socio.
+      // Movements: any member records them; correcting or deleting history is
+      // left to owner and partner.
       match /ventas/{docId} {
         allow read, create: if esMiembro(negocioId);
         allow update, delete: if esDuenoOSocio(negocioId);
@@ -241,14 +241,14 @@ service cloud.firestore {
         allow update, delete: if esDuenoOSocio(negocioId);
       }
 
-      // Pedidos: un empleado los crea y los avanza de estado; eliminarlos, no.
+      // Orders: an employee creates them and advances their state; not delete.
       match /pedidos/{docId} {
         allow read, create, update: if esMiembro(negocioId);
         allow delete: if esDuenoOSocio(negocioId);
       }
 
-      // Cualquier subcolección futura queda cerrada hasta que se le escriba
-      // una regla propia y consciente.
+      // Any future subcollection stays closed until a deliberate rule of its
+      // own is written for it.
       match /{otraColeccion}/{docId} {
         allow read, write: if false;
       }
@@ -257,21 +257,21 @@ service cloud.firestore {
     // ------------------------------------------------------------------
     // invitaciones/{codigo}
     //
-    // El código de 6 caracteres es la credencial. Quien lo tiene puede leerlo
-    // para canjearlo; nadie puede listar los códigos de un negocio ajeno.
+    // The 6-character code is the credential. Whoever holds it can read it to
+    // redeem it; nobody can list another business's codes.
     // ------------------------------------------------------------------
 
     match /invitaciones/{codigo} {
 
-      // Leer un código suelto: hace falta para canjearlo sin ser aún miembro.
+      // Reading a single code: needed to redeem it before being a member.
       allow get: if autenticado();
 
-      // Listar: solo el dueño, y solo los de su propio negocio.
+      // Listing: only the owner, and only their own business's codes.
       allow list: if tengoFicha() &&
                      resource.data.get('negocioId', '') == miNegocio() &&
                      esDueno(miNegocio());
 
-      // Crear: el dueño invita a su negocio, nunca a otro, y nunca como dueño.
+      // Creating: the owner invites to their business, never another, never as owner.
       allow create: if esDueno(request.resource.data.get('negocioId', '')) &&
                        request.resource.data.get('negocioId', '') == miNegocio() &&
                        request.resource.data.get('rol', '') in ['socio', 'empleado'] &&
@@ -279,8 +279,8 @@ service cloud.firestore {
                        request.resource.data.get('creadoPor', '') == request.auth.uid &&
                        request.resource.data.get('usadaPor', '') == '';
 
-      // Canjear: pendiente -> usada, a mi nombre, sin alterar nada más.
-      // (O el dueño, que puede corregir su propia invitación.)
+      // Redeeming: pendiente -> usada, in my name, altering nothing else.
+      // (Or the owner, who may correct their own invitation.)
       allow update: if resource != null && (
                        (autenticado() &&
                         resource.data.get('estado', '') == 'pendiente' &&
@@ -294,8 +294,8 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------
-    // Todo lo demás: cerrado. Si aparece una colección nueva, que falle
-    // ruidosamente en desarrollo antes que quedar abierta en producción.
+    // Everything else: closed. If a new collection appears, let it fail loudly
+    // in development rather than sit open in production.
     // ------------------------------------------------------------------
 
     match /{document=**} {
