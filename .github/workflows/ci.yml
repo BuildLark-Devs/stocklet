@@ -1,0 +1,84 @@
+# Required checks for every pull request.
+#
+# The two `name:` values below are the status check contexts the `main` ruleset
+# requires: "Domain, UI and analysis" and "Firestore access rules". Renaming a
+# job without renaming the required check in Settings > Rules leaves `main`
+# waiting on a check that never arrives.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same branch cancels the previous run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  domain:
+    name: Domain, UI and analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.2"
+          channel: stable
+          cache: true
+
+      # lib/firebase_options.dart is not versioned (see docs/DEVELOPMENT.md).
+      # The analyzer and the compiler need the file to exist, but nothing here
+      # connects to Firebase, so filler values are enough.
+      - name: Fill in the Firebase configuration
+        run: cp tool/ci/firebase_options.dart.stub lib/firebase_options.dart
+
+      - run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Domain tests
+        run: flutter test
+
+      # Web is the only build check possible here: the Android .aab needs the
+      # release signing key, which never enters CI.
+      - name: Build the PWA
+        run: flutter build web --release
+
+  rules:
+    name: Firestore access rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: test/rules/package-lock.json
+
+      # The Firestore emulator is a .jar.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install the Firebase CLI
+        run: npm install -g firebase-tools@15
+
+      - run: npm ci
+        working-directory: test/rules
+
+      # Boots the emulator against firestore.rules and runs the 46 cases.
+      - name: Rules tests
+        run: npm test
+        working-directory: test/rules
