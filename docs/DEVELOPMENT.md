@@ -175,8 +175,9 @@ business and another's data (the UI merely hides buttons):
   `socio`, `empleado`).
 - `storage.rules` — profile photos, business logo and PDF catalogues.
 
-They have a suite that exercises them against the emulator. It needs Java, and
-`npm install` once inside `test/rules`:
+They have a suite that exercises them against the emulator. It needs Java,
+**Node 24 or newer** (the `@firebase/*` v13 line declares `engines`
+`node >=24.12.0`) and `npm install` once inside `test/rules`:
 
 ```
 cd test/rules

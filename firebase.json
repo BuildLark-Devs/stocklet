@@ -4,7 +4,7 @@
       "android": {
         "default": {
           "projectId": "mi-reposteria-app",
-          "appId": "1:681693956824:android:1d2cc41238aff7537e25ad",
+          "appId": "1:681693956824:android:b88dbbeaea56ea9a7e25ad",
           "fileOutput": "android/app/google-services.json"
         }
       },
@@ -12,8 +12,8 @@
         "lib/firebase_options.dart": {
           "projectId": "mi-reposteria-app",
           "configurations": {
-            "android": "1:681693956824:android:1d2cc41238aff7537e25ad",
-            "ios": "1:681693956824:ios:8076bb0c96a1fb327e25ad",
+            "android": "1:681693956824:android:b88dbbeaea56ea9a7e25ad",
+            "ios": "1:681693956824:ios:9380ef80adb571617e25ad",
             "web": "1:681693956824:web:cf493bd15903373e7e25ad"
           }
         }
