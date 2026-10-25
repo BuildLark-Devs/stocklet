@@ -33,7 +33,7 @@ Run them yourself before pushing:
 
 ```
 flutter analyze && flutter test
-cd test/rules && npm test        # needs Java and the Firebase CLI
+cd test/rules && npm test        # needs Java, Node 24+ and the Firebase CLI
 ```
 
 CI has no Firebase credentials and does not need any. It copies

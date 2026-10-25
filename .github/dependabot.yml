@@ -1,6 +1,16 @@
 # Dependency updates, grouped and monthly so they do not flood the repository
 # with pull requests. Flutter/Dart (pub) is separate because the SDK pins most
 # of its versions.
+#
+# Every ecosystem is grouped into a single pull request. Without grouping,
+# Dependabot opened one pull request per dependency, and two of them failed:
+# @firebase/rules-unit-testing@6 declares `peer firebase@^13`, so each half of
+# that upgrade could not resolve on its own. Dependencies that have to move
+# together have to be reviewed together.
+#
+# A group also means one CI run and one merge instead of N, which matters
+# because `main` requires branches to be up to date: every merge invalidates
+# every other open pull request.
 version: 2
 updates:
   - package-ecosystem: pub
@@ -8,20 +18,32 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    groups:
+      pub:
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /functions
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    groups:
+      functions:
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /test/rules
     schedule:
       interval: monthly
     open-pull-requests-limit: 2
+    groups:
+      rules-tests:
+        patterns: ["*"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
